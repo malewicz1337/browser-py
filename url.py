@@ -1,9 +1,6 @@
-import socket
-import ssl
 import base64
 import html
-import time
-import threading
+from sockets import Sockets
 
 
 class URL:
@@ -57,22 +54,9 @@ class URL:
             body_chunks.append(chunk)
         return b"".join(body_chunks)
 
-    def get_socket(self):
-        key = (self.scheme, self.host, self.port)
-        if key not in self.sockets or self.sockets[key] is None:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((self.host, self.port))
-
-            if self.scheme == "https":
-                ctx = ssl.create_default_context()
-                s = ctx.wrap_socket(s, server_hostname=self.host)
-
-            self.sockets[key] = (s, time.time())
-        return self.sockets[key][0]
-
     def request(self):
         if self.scheme in ["http", "https"]:
-            s = self.get_socket()
+            s = Sockets.get_socket(self.scheme, self.host, self.port)
 
             request_headers = (
                 f"GET {self.path} HTTP/1.1\r\n"
@@ -156,21 +140,3 @@ class URL:
                     return base64.b64decode(data_string).decode("utf8")
                 else:
                     return self.decode_html_entities(data_string)
-
-    @staticmethod
-    def close_idle_sockets(idle_time=300):  # idle time in seconds
-        current_time = time.time()
-        for key, (socket, last_used) in list(URL.sockets.items()):
-            if current_time - last_used > idle_time:
-                socket.close()
-                del URL.sockets[key]
-
-    @staticmethod
-    def start_socket_cleaner(interval=300):  # interval in seconds
-        def cleaner():
-            while True:
-                URL.close_idle_sockets(interval)
-                time.sleep(interval)
-
-        thread = threading.Thread(target=cleaner, daemon=True)
-        thread.start()
