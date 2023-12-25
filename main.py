@@ -10,8 +10,13 @@ def show(body):
 
 
 def load(url):
-    body = url.request()
-    show(body)
+    try:
+        body = url.request()
+        show(body)
+    except Exception as e:
+        print(e)
+        print("Failed to load", url)
+        return False
 
 
 if __name__ == "__main__":

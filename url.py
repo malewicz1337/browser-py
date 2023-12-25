@@ -4,8 +4,6 @@ from sockets import Sockets
 
 
 class URL:
-    sockets = {}
-
     def __init__(
         self, url="file:///path/to/default/testfile.html"
     ):  # default file path
@@ -43,33 +41,37 @@ class URL:
         return html.unescape(text)
 
     def read_chunked(self, response):
-        body_chunks = []
+        chunked_body = b""
         while True:
-            chunk_size_str = response.readline().strip()
-            chunk_size = int(chunk_size_str, 16) if chunk_size_str else 0
+            line = response.readline()
+            if line == b"\r\n":
+                break
+            chunk_size = int(line, 16)
             if chunk_size == 0:
-                break  # End of chunks
-            chunk = response.read(chunk_size)
-            response.readline()  # Consume trailing newline
-            body_chunks.append(chunk)
-        return b"".join(body_chunks)
+                break
+            chunked_body += response.read(chunk_size)
+            response.read(2)  # discard CRLF at the end of the chunk
+        return chunked_body
 
-    def request(self):
+    def request(self, redirect_limit=10):
         if self.scheme in ["http", "https"]:
             s = Sockets.get_socket(self.scheme, self.host, self.port)
 
             request_headers = (
                 f"GET {self.path} HTTP/1.1\r\n"
                 f"Host: {self.host}\r\n"
-                # "Connection: close\r\n"
+                "Connection: keep-alive\r\n"
                 "Accept: */*\r\n"
-                "User-Agent: mlwcz\r\n"
+                "User-Agent: mlwcz\r\n\r\n"
             )
+
+            print("Sending request headers...")
             s.send(request_headers.encode("utf8"))
 
             response = s.makefile("r", encoding="utf8", newline="\r\n")
             statusline = response.readline()
             version, status, explanation = statusline.split(" ", 2)
+            status_code = int(status)
 
             response_headers = {}
             content_length = None
@@ -83,12 +85,25 @@ class URL:
                 if header.casefold() == "content-length":
                     content_length = int(value.strip())
 
-            assert (
-                "transfer-encoding" not in response_headers
-            ), "Transfer-Encoding is not supported"
-            assert (
-                "content-encoding" not in response_headers
-            ), "Content-Encoding is not supported"
+            # Check if it's a redirect
+            if 300 <= status_code < 400:
+                location = response_headers.get("location")
+                if not location:
+                    raise Exception("Redirect location not provided")
+
+                # Handle relative redirect
+                if location.startswith("/"):
+                    location = f"{self.scheme}://{self.host}:{self.port}{location}"
+
+                # Follow the redirect
+                return URL(location).request(redirect_limit - 1)
+
+            # assert (
+            #     "transfer-encoding" not in response_headers
+            # ), "Transfer-Encoding is not supported"
+            # assert (
+            #     "content-encoding" not in response_headers
+            # ), "Content-Encoding is not supported"
 
             content_type = response_headers.get("content-type", "")
             encoding = "utf8"
@@ -104,12 +119,14 @@ class URL:
                 assert content_length is not None, "Content-Length header is missing"
                 raw_body = response.read(content_length)
 
-            decoded_body = raw_body.decode(encoding)
+            # Check the type of raw_body and decode if necessary
+            if isinstance(raw_body, bytes):
+                decoded_body = raw_body.decode(encoding)
+            else:
+                decoded_body = raw_body
 
-            key = (self.scheme, self.host, self.port)
             if response_headers.get("connection") == "close":
-                s.close()
-                self.sockets[key] = None
+                Sockets.close_socket(self.scheme, self.host, self.port)
 
             if self.view_source:
                 # Return raw HTML for view-source
