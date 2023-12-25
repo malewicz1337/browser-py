@@ -9,7 +9,6 @@ class Sockets:
 
     @classmethod
     def get_socket(cls, scheme, host, port):
-        print("Getting socket", scheme, host, port)
         key = (scheme, host, port)
         if key not in cls.sockets or cls.sockets[key] is None:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -20,7 +19,6 @@ class Sockets:
                 s = ctx.wrap_socket(s, server_hostname=host)
 
             cls.sockets[key] = (s, time.time())
-        print("Got socket", cls.sockets[key][0])
         return cls.sockets[key][0]
 
     @staticmethod
