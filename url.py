@@ -2,6 +2,7 @@ import base64
 from curses import raw
 import html
 import gzip
+from cache import Cache
 from sockets import Sockets
 import urllib.parse
 
@@ -10,6 +11,8 @@ class URL:
     def __init__(
         self, url="file:///path/to/default/testfile.html"
     ):  # default file path
+        self.url = url
+
         self.view_source = False
         if url.startswith("view-source:"):
             self.view_source = True
@@ -74,6 +77,10 @@ class URL:
 
     def request(self, redirect_limit=10):
         if self.scheme in ["http", "https"]:
+            cached_response = Cache.get_cached_response(self.url)
+            if cached_response:
+                return self.process_cached_response(cached_response)
+
             s = Sockets.get_socket(self.scheme, self.host, self.port)
 
             request_headers = (
@@ -161,6 +168,19 @@ class URL:
                 print(f"Failed to decode response with encoding: {encoding}")
                 return None
 
+            # Check for cache
+            cache_control = response_headers.get("cache-control", "")
+            # Process the response for caching
+            if "no-store" not in cache_control:
+                max_age = Cache.get_max_age(cache_control)
+                cache_entry = {
+                    "body": raw_body,
+                    "headers": response_headers,
+                    "url": self.url,
+                    "encoding": encoding,
+                }
+                Cache.store_in_cache(cache_entry, max_age, self.url)
+
             if (
                 "connection" in response_headers
                 and response_headers["connection"] == "close"
@@ -196,3 +216,27 @@ class URL:
                     return base64.b64decode(data_string).decode("utf8")
                 else:
                     return self.decode_html_entities(data_string)
+
+    def process_cached_response(self, cached_response):
+        raw_body = cached_response["body"]
+        response_headers = cached_response["headers"]
+        content_type = response_headers.get("content-type", "")
+        encoding = cached_response["encoding"]
+
+        # Decode or process the response body
+        try:
+            # Decode the body if it's text
+            if "text" in content_type or "json" in content_type:
+                body = raw_body.decode(encoding)
+            else:
+                body = raw_body  # Handle as binary data
+        except UnicodeDecodeError:
+            print(f"Failed to decode response with encoding: {encoding}")
+            return None
+
+        if self.view_source:
+            # Return raw HTML for view-source
+            return body
+        else:
+            # Decode HTML entities for normal viewing
+            return self.decode_html_entities(body)
