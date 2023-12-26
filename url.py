@@ -1,6 +1,7 @@
 import base64
 from curses import raw
 import html
+import gzip
 from sockets import Sockets
 import urllib.parse
 
@@ -79,6 +80,7 @@ class URL:
                 f"GET {self.path} HTTP/1.1\r\n"
                 f"Host: {self.host}\r\n"
                 "Connection: keep-alive\r\n"
+                "Accept-Encoding: gzip\r\n"
                 "Accept: */*\r\n"
                 "User-Agent: mlwcz\r\n\r\n"
             )
@@ -92,7 +94,6 @@ class URL:
             )  # ISO-8859-1 is a safe bet for headers
             version, status, explanation = statusline.split(" ", 2)
             status_code = int(status)
-            print("Received status line...", statusline)
 
             response_headers = {}
             content_length = None
@@ -106,8 +107,6 @@ class URL:
                 response_headers[header.casefold()] = value.strip()
                 if header.casefold() == "content-length":
                     content_length = int(value.strip())
-
-            print("Received response headers...", response_headers)
 
             # Check if it's a redirect
             if 300 <= status_code < 400:
@@ -123,6 +122,7 @@ class URL:
                 return URL(location).request(redirect_limit - 1)
 
             # Determine correct encoding
+            gzip_compressed = response_headers.get("content-encoding") == "gzip"
             content_type = response_headers.get("content-type", "")
             encoding = "utf8"  # Default encoding
             if "charset=" in content_type:
@@ -131,14 +131,24 @@ class URL:
                 encoding = "utf8"
 
             # Read the response body
+            raw_body = b""
             if (
                 "transfer-encoding" in response_headers
                 and response_headers["transfer-encoding"] == "chunked"
             ):
                 raw_body = self.read_chunked(response)
-            else:
-                assert content_length is not None, "Content-Length header is missing"
+            elif content_length is not None:
                 raw_body = response.read(content_length)
+            else:
+                raw_body = response.read()
+
+            if gzip_compressed:
+                # Decompress gzip data
+                try:
+                    raw_body = gzip.decompress(raw_body)
+                except Exception as e:
+                    print(f"Error decompressing gzip data: {e}")
+                    return None
 
             # Decode or process the response body
             try:
