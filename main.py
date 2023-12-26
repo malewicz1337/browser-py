@@ -1,4 +1,6 @@
 def show(body):
+    """Remove html tags from body and print text only."""
+
     in_tag = False
     for c in body:
         if c == "<":
@@ -10,9 +12,12 @@ def show(body):
 
 
 def load(url):
+    """Send the request, recieve and show body."""
+
     try:
         body = url.request()
         show(body)
+        return True
     except Exception as e:
         print(e)
         print("Failed to load", url)

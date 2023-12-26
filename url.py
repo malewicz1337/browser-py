@@ -1,13 +1,14 @@
+import urllib.parse
 import base64
-from curses import raw
 import html
 import gzip
 from cache import Cache
 from sockets import Sockets
-import urllib.parse
 
 
 class URL:
+    """URL class for handling HTTP requests and responses."""
+
     def __init__(
         self, url="file:///path/to/default/testfile.html"
     ):  # default file path
@@ -45,12 +46,12 @@ class URL:
             # self.data = url  # Data embedded in URL
             self.data = urllib.parse.unquote(url)
 
-    # Decode HTML entities in the text.
     def decode_html_entities(self, text):
+        """Decode HTML entities in the text."""
         return html.unescape(text)
 
-    # Additional method to read chunked binary data
     def read_chunked(self, response):
+        """Additional method to read chunked binary data"""
         chunks = []
         while True:
             # Read and decode the size line
@@ -76,6 +77,7 @@ class URL:
         return b"".join(chunks)
 
     def request(self, redirect_limit=10):
+        """Main method for"""
         if self.scheme in ["http", "https"]:
             cached_response = Cache.get_cached_response(self.url)
             if cached_response:
@@ -99,7 +101,7 @@ class URL:
             statusline = raw_statusline.decode(
                 "iso-8859-1"
             )  # ISO-8859-1 is a safe bet for headers
-            version, status, explanation = statusline.split(" ", 2)
+            _version, status, _explanation = statusline.split(" ", 2)
             status_code = int(status)
 
             response_headers = {}
@@ -190,34 +192,37 @@ class URL:
             if self.view_source:
                 # Return raw HTML for view-source
                 return body
-            else:
-                # Decode HTML entities for normal viewing
-                return self.decode_html_entities(body)
 
-        elif self.scheme == "file":
-            with open(self.path, "r") as file:
+            # Decode HTML entities for normal viewing
+            return self.decode_html_entities(body)
+
+        if self.scheme == "file":
+            with open(self.path, "r", encoding="utf-8") as file:
                 content = file.read()
 
             if self.view_source:
                 return content
-            else:
-                return self.decode_html_entities(content)
 
-        elif self.scheme == "data":
+            return self.decode_html_entities(content)
+
+        if self.scheme == "data":
             mime_type, data_string = self.data.split(",", 1)
 
             if self.view_source:
                 if ";base64" in mime_type:
                     return base64.b64decode(data_string).decode("utf8")
-                else:
-                    return data_string
-            else:
-                if ";base64" in mime_type:
-                    return base64.b64decode(data_string).decode("utf8")
-                else:
-                    return self.decode_html_entities(data_string)
+
+                return data_string
+
+            if ";base64" in mime_type:
+                return base64.b64decode(data_string).decode("utf8")
+
+            return self.decode_html_entities(data_string)
 
     def process_cached_response(self, cached_response):
+        """Process a cached response."""
+
+        # Extract cached data from the response
         raw_body = cached_response["body"]
         response_headers = cached_response["headers"]
         content_type = response_headers.get("content-type", "")
@@ -237,6 +242,6 @@ class URL:
         if self.view_source:
             # Return raw HTML for view-source
             return body
-        else:
-            # Decode HTML entities for normal viewing
-            return self.decode_html_entities(body)
+
+        # Decode HTML entities for normal viewing
+        return self.decode_html_entities(body)
