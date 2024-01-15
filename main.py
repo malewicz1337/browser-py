@@ -57,7 +57,6 @@ def layout(text, width):
 class Browser:
     def __init__(self):
         self.window = tkinter.Tk()
-        # self.canvas = tkinter.Canvas(self.window, width=WIDTH, height=HEIGHT)
         self.canvas = tkinter.Canvas(self.window, width=WIDTH, height=HEIGHT)
         self.canvas.pack(fill="both", expand=True)
         self.scroll = 0
@@ -70,6 +69,12 @@ class Browser:
     def load(self, url):
         """Send the request, recieve and show body."""
 
+        if url == "about:blank":
+            self.current_text = ""
+            self.display_list = []
+            self.draw()
+            return True
+
         try:
             body = url.request()
             text = lex(body)
@@ -81,6 +86,7 @@ class Browser:
         except Exception as e:
             print("Error at load method on Browser: ", e)
             print("Failed to load", url)
+            self.load("about:blank")
             return False
 
     def draw(self):
