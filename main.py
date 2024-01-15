@@ -83,6 +83,7 @@ class Browser:
             self.draw()
 
             return True
+
         except Exception as e:
             print("Error at load method on Browser: ", e)
             print("Failed to load", url)
