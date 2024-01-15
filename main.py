@@ -26,13 +26,24 @@ def lex(body):
 def layout(text):
     display_list = []
     cursor_x, cursor_y = HSTEP, VSTEP
-    for c in text:
-        display_list.append((cursor_x, cursor_y, c))
-        cursor_x += HSTEP
+    words = text.split()
 
-        if cursor_x >= WIDTH - HSTEP:
+    for word in words:
+        word_width = len(word) * HSTEP
+
+        # Check if the word fits in the remaining line, wrap otherwise
+        if cursor_x + word_width >= WIDTH:
             cursor_y += VSTEP
             cursor_x = HSTEP
+
+        # Add each character of the word to the display list
+        for char in word:
+            display_list.append((cursor_x, cursor_y, char))
+            cursor_x += HSTEP
+
+        # Add space after the word
+        if cursor_x + HSTEP < WIDTH:
+            cursor_x += HSTEP
 
     return display_list
 
@@ -63,8 +74,10 @@ class Browser:
     def draw(self):
         self.canvas.delete("all")
         for x, y, c in self.display_list:
-            if y > self.scroll + HEIGHT: continue
-            if y + VSTEP < self.scroll: continue
+            if y > self.scroll + HEIGHT:
+                continue
+            if y + VSTEP < self.scroll:
+                continue
             self.canvas.create_text(x, y - self.scroll, text=c)
 
     def scrolldown(self, e):
