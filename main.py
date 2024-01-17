@@ -1,5 +1,5 @@
 import tkinter
-
+import tkinter.font
 
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 8, 14
@@ -23,33 +23,29 @@ def lex(body):
     return text
 
 
-def layout(text, width):
+def layout(text, font):
     display_list = []
     cursor_x, cursor_y = HSTEP, VSTEP
+
     lines = text.split("\n")
 
     for line in lines:
         words = line.split()
         for word in words:
-            word_width = len(word) * HSTEP
+            w = font.measure(word)
 
-            # Check if the word fits in the remaining line, wrap otherwise
-            if cursor_x + word_width >= width:
-                cursor_y += VSTEP
+            # Check if the word will exceed the line width
+            if cursor_x + w >= WIDTH - HSTEP:
+                cursor_y += font.metrics("linespace") * 1.25
                 cursor_x = HSTEP
 
-            # Add each character of the word to the display list
-            for char in word:
-                display_list.append((cursor_x, cursor_y, char))
-                cursor_x += HSTEP
+            # Add the word to the display list
+            display_list.append((cursor_x, cursor_y, word))
+            cursor_x += w + font.measure(" ")
 
-            # Space after the word
-            if cursor_x + HSTEP < width:
-                cursor_x += HSTEP
-
-        # New line and potential paragraph break
-        cursor_y += VSTEP * 1.2  # Paragraph breaks
-        cursor_x = HSTEP
+        # Move to the next line after each line of text
+        # cursor_y += font.metrics("linespace") * 1.25
+        # cursor_x = HSTEP
 
     return display_list
 
@@ -66,6 +62,13 @@ class Browser:
         self.window.bind("<Configure>", self.on_resize)
         self.current_text = ""
 
+        self.bi_times = tkinter.font.Font(
+            family="Times",
+            size=16,
+            weight="normal",
+            slant="roman",
+        )
+
     def load(self, url):
         """Send the request, recieve and show body."""
 
@@ -79,7 +82,7 @@ class Browser:
             body = url.request()
             text = lex(body)
             self.current_text = text
-            self.display_list = layout(text, WIDTH)
+            self.display_list = layout(text, self.bi_times)
             self.draw()
 
             return True
@@ -97,13 +100,13 @@ class Browser:
                 continue
             if y + VSTEP < self.scroll:
                 continue
-            self.canvas.create_text(x, (y - self.scroll), text=c)
+            self.canvas.create_text(x, (y - self.scroll), text=c, font=self.bi_times)
 
     def on_resize(self, event):
         global WIDTH, HEIGHT
         WIDTH, HEIGHT = event.width, event.height
         if self.current_text:
-            self.display_list = layout(self.current_text, WIDTH)
+            self.display_list = layout(self.current_text, self.bi_times)
             self.draw()
 
     def scrolldown(self, e):
