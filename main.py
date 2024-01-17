@@ -56,6 +56,8 @@ def layout(tokens, font):
                 word_width = font.measure(word)
                 space_width = font.measure(" ")
 
+                # !: Idk, something is wrong with spacing here
+
                 if cursor_x + word_width + space_width > WIDTH - HSTEP:
                     cursor_y += font.metrics("linespace") * 1.25  # Move to next line
                     cursor_x = HSTEP
