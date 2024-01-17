@@ -2,50 +2,78 @@ import tkinter
 import tkinter.font
 
 WIDTH, HEIGHT = 800, 600
-HSTEP, VSTEP = 8, 14
+HSTEP, VSTEP = 13, 18
 cursor_x, cursor_y = HSTEP, VSTEP
 SCROLL_STEP = 100
+
+
+class Text:
+    def __init__(self, text):
+        self.text = text
+
+
+class Tag:
+    def __init__(self, tag):
+        self.tag = tag
 
 
 def lex(body):
     """Remove html tags from body and return text only."""
 
-    text = ""
+    out = []
+    buffer = ""
     in_tag = False
+
     for c in body:
         if c == "<":
             in_tag = True
+            if buffer:
+                out.append(Text(buffer))
+            buffer = ""
         elif c == ">":
             in_tag = False
-        elif not in_tag:
-            text += c
+            out.append(Tag(buffer))
+            buffer = ""
+        else:
+            buffer += c
 
-    return text
+    if not in_tag and buffer:
+        out.append(Text(buffer))
+
+    return out
 
 
-def layout(text, font):
+def layout(tokens, font):
     display_list = []
     cursor_x, cursor_y = HSTEP, VSTEP
+    weight = "normal"
+    style = "roman"
 
-    lines = text.split("\n")
+    for tok in tokens:
+        if isinstance(tok, Text):
+            for word in tok.text.split():
+                font = tkinter.font.Font(size=16, weight=weight, slant=style)
+                word_width = font.measure(word)
+                space_width = font.measure(" ")
 
-    for line in lines:
-        words = line.split()
-        for word in words:
-            w = font.measure(word)
+                if cursor_x + word_width + space_width > WIDTH - HSTEP:
+                    cursor_y += font.metrics("linespace") * 1.25  # Move to next line
+                    cursor_x = HSTEP
 
-            # Check if the word will exceed the line width
-            if cursor_x + w >= WIDTH - HSTEP:
-                cursor_y += font.metrics("linespace") * 1.25
-                cursor_x = HSTEP
+                display_list.append((cursor_x, cursor_y, word, font))
+                cursor_x += word_width + space_width  # Add space after each word
 
-            # Add the word to the display list
-            display_list.append((cursor_x, cursor_y, word))
-            cursor_x += w + font.measure(" ")
+            cursor_y += font.metrics("linespace") * 1.25  # Add space after each line
+            cursor_x = HSTEP
 
-        # Move to the next line after each line of text
-        # cursor_y += font.metrics("linespace") * 1.25
-        # cursor_x = HSTEP
+        elif tok.tag == "i":
+            style = "italic"
+        elif tok.tag == "/i":
+            style = "roman"
+        elif tok.tag == "b":
+            weight = "bold"
+        elif tok.tag == "/b":
+            weight = "normal"
 
     return display_list
 
@@ -60,7 +88,7 @@ class Browser:
         self.window.bind("<Up>", self.scrollup)
         self.window.bind("<MouseWheel>", self.wheelscroll)
         self.window.bind("<Configure>", self.on_resize)
-        self.current_text = ""
+        self.current_tokens = ""
 
         self.bi_times = tkinter.font.Font(
             family="Times",
@@ -80,9 +108,9 @@ class Browser:
 
         try:
             body = url.request()
-            text = lex(body)
-            self.current_text = text
-            self.display_list = layout(text, self.bi_times)
+            tokens = lex(body)
+            self.current_tokens = tokens
+            self.display_list = layout(tokens, self.bi_times)
             self.draw()
 
             return True
@@ -95,19 +123,18 @@ class Browser:
 
     def draw(self):
         self.canvas.delete("all")
-        for x, y, c in self.display_list:
-            if y > self.scroll + HEIGHT:
+        for x, y, text, font in self.display_list:
+            if y > self.scroll + HEIGHT or y + VSTEP < self.scroll:
                 continue
-            if y + VSTEP < self.scroll:
-                continue
-            self.canvas.create_text(x, (y - self.scroll), text=c, font=self.bi_times)
+            self.canvas.create_text(
+                x, (y - self.scroll), text=text, font=font, anchor="nw"
+            )
 
     def on_resize(self, event):
         global WIDTH, HEIGHT
         WIDTH, HEIGHT = event.width, event.height
-        if self.current_text:
-            self.display_list = layout(self.current_text, self.bi_times)
-            self.draw()
+        self.display_list = layout(self.current_tokens, self.bi_times)
+        self.draw()
 
     def scrolldown(self, e):
         self.scroll += SCROLL_STEP
