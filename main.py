@@ -5,6 +5,16 @@ WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
 cursor_x, cursor_y = HSTEP, VSTEP
 SCROLL_STEP = 100
+FONTS = {}
+
+
+def get_font(size, weight, slant):
+    key = (size, weight, slant)
+    if key not in FONTS:
+        font = tkinter.font.Font(size=size, weight=weight, slant=slant)
+        label = tkinter.Label(font=font)
+        FONTS[key] = (font, label)
+    return FONTS[key][0]
 
 
 class Text:
@@ -110,7 +120,7 @@ class Layout:
             self.cursor_y += VSTEP
 
     def word(self, word):
-        font = tkinter.font.Font(size=self.size, weight=self.weight, slant=self.style)  # type: ignore
+        font = get_font(self.size, self.weight, self.style)
         word_width = font.measure(word)
         space_width = font.measure(" ")
 
