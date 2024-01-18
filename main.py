@@ -43,41 +43,90 @@ def lex(body):
     return out
 
 
-def layout(tokens, font):
-    display_list = []
-    cursor_x, cursor_y = HSTEP, VSTEP
-    weight = "normal"
-    style = "roman"
+class Layout:
+    def __init__(self, tokens):
+        self.display_list = []
+        self.cursor_x = HSTEP
+        self.cursor_y = VSTEP
+        self.weight = "normal"
+        self.style = "roman"
+        self.size = 16
 
-    for tok in tokens:
+        for tok in tokens:
+            self.token(tok)
+
+    def token(self, tok):
+        # for tok in tokens:
         if isinstance(tok, Text):
+            font = tkinter.font.Font(size=16, weight=self.weight, slant=self.style)  # type: ignore
+
             for word in tok.text.split():
-                font = tkinter.font.Font(size=16, weight=weight, slant=style)
-                word_width = font.measure(word)
-                space_width = font.measure(" ")
+                self.word(word)
 
-                # !: Idk, something is wrong with spacing here
-
-                if cursor_x + word_width + space_width > WIDTH - HSTEP:
-                    cursor_y += font.metrics("linespace") * 1.25  # Move to next line
-                    cursor_x = HSTEP
-
-                display_list.append((cursor_x, cursor_y, word, font))
-                cursor_x += word_width + space_width  # Add space after each word
-
-            cursor_y += font.metrics("linespace") * 1.25  # Add space after each line
-            cursor_x = HSTEP
+            self.cursor_y += (
+                font.metrics("linespace") * 1.25
+            )  # Add space after each line
+            self.cursor_x = HSTEP
 
         elif tok.tag == "i":
-            style = "italic"
+            self.style = "italic"
         elif tok.tag == "/i":
-            style = "roman"
+            self.style = "roman"
         elif tok.tag == "b":
-            weight = "bold"
+            self.weight = "bold"
         elif tok.tag == "/b":
-            weight = "normal"
+            self.weight = "normal"
 
-    return display_list
+    def word(self, word):
+        font = tkinter.font.Font(size=16, weight=self.weight, slant=self.style)  # type: ignore
+        word_width = font.measure(word)
+        space_width = font.measure(" ")
+
+        # !: Idk, something is wrong with spacing here
+
+        if self.cursor_x + word_width + space_width > WIDTH - HSTEP:
+            self.cursor_y += font.metrics("linespace") * 1.25  # Move to next line
+            self.cursor_x = HSTEP
+
+        self.display_list.append((self.cursor_x, self.cursor_y, word, font))
+        self.cursor_x += word_width + space_width  # Add space after each word
+
+
+# def layout(tokens, font):
+#     display_list = []
+#     cursor_x, cursor_y = HSTEP, VSTEP
+#     weight = "normal"
+#     style = "roman"
+
+#     for tok in tokens:
+#         if isinstance(tok, Text):
+#             for word in tok.text.split():
+#                 font = tkinter.font.Font(size=16, weight=weight, slant=style)
+#                 word_width = font.measure(word)
+#                 space_width = font.measure(" ")
+
+#                 # !: Idk, something is wrong with spacing here
+
+#                 if cursor_x + word_width + space_width > WIDTH - HSTEP:
+#                     cursor_y += font.metrics("linespace") * 1.25  # Move to next line
+#                     cursor_x = HSTEP
+
+#                 display_list.append((cursor_x, cursor_y, word, font))
+#                 cursor_x += word_width + space_width  # Add space after each word
+
+#             cursor_y += font.metrics("linespace") * 1.25  # Add space after each line
+#             cursor_x = HSTEP
+
+#         elif tok.tag == "i":
+#             style = "italic"
+#         elif tok.tag == "/i":
+#             style = "roman"
+#         elif tok.tag == "b":
+#             weight = "bold"
+#         elif tok.tag == "/b":
+#             weight = "normal"
+
+#     return display_list
 
 
 class Browser:
@@ -112,7 +161,7 @@ class Browser:
             body = url.request()
             tokens = lex(body)
             self.current_tokens = tokens
-            self.display_list = layout(tokens, self.bi_times)
+            self.display_list = Layout(tokens).display_list
             self.draw()
 
             return True
@@ -135,7 +184,7 @@ class Browser:
     def on_resize(self, event):
         global WIDTH, HEIGHT
         WIDTH, HEIGHT = event.width, event.height
-        self.display_list = layout(self.current_tokens, self.bi_times)
+        self.display_list = Layout(self.current_tokens).display_list
         self.draw()
 
     def scrolldown(self, e):
