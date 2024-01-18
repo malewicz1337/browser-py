@@ -46,26 +46,46 @@ def lex(body):
 class Layout:
     def __init__(self, tokens):
         self.display_list = []
+        self.line = []
         self.cursor_x = HSTEP
         self.cursor_y = VSTEP
         self.weight = "normal"
         self.style = "roman"
         self.size = 16
 
+        self.flush()
+
         for tok in tokens:
             self.token(tok)
 
+    def flush(self):
+        if not self.line:
+            return
+
+        max_ascent = max([font.metrics("ascent") for x, word, font in self.line])
+        max_descent = max([font.metrics("descent") for x, word, font in self.line])
+
+        baseline = self.cursor_y + 1.25 * max_ascent
+
+        for x, word, font in self.line:
+            y = baseline - font.metrics("ascent")
+            self.display_list.append((x, y, word, font))
+
+        self.cursor_y = baseline + 1.25 * max_descent
+        self.cursor_x = HSTEP
+        self.line = []
+
     def token(self, tok):
         if isinstance(tok, Text):
-            font = tkinter.font.Font(size=16, weight=self.weight, slant=self.style)  # type: ignore
+            # font = tkinter.font.Font(size=self.size, weight=self.weight, slant=self.style)  # type: ignore
 
             for word in tok.text.split():
                 self.word(word)
 
-            self.cursor_y += (
-                font.metrics("linespace") * 1.25
-            )  # Add space after each line
-            self.cursor_x = HSTEP
+            # self.cursor_y += (
+            #     font.metrics("linespace") * 1.25
+            # )  # Add space after each line
+            # self.cursor_x = HSTEP
 
         elif tok.tag == "i":
             self.style = "italic"
@@ -75,13 +95,27 @@ class Layout:
             self.weight = "bold"
         elif tok.tag == "/b":
             self.weight = "normal"
+        elif tok.tag == "small":
+            self.size -= 2
+        elif tok.tag == "/small":
+            self.size += 2
+        elif tok.tag == "big":
+            self.size += 4
+        elif tok.tag == "/big":
+            self.size -= 4
+        elif tok.tag == "br":
+            self.flush()
+        elif tok.tag == "/p":
+            self.flush()
+            self.cursor_y += VSTEP
 
     def word(self, word):
-        font = tkinter.font.Font(size=16, weight=self.weight, slant=self.style)  # type: ignore
+        font = tkinter.font.Font(size=self.size, weight=self.weight, slant=self.style)  # type: ignore
         word_width = font.measure(word)
         space_width = font.measure(" ")
 
-        # !: Idk, something is wrong with spacing here
+        if self.cursor_x + word_width > WIDTH - HSTEP:
+            self.flush()
 
         if self.cursor_x + word_width + space_width > WIDTH - HSTEP:
             self.cursor_y += font.metrics("linespace") * 1.25  # Move to next line
@@ -89,43 +123,7 @@ class Layout:
 
         self.display_list.append((self.cursor_x, self.cursor_y, word, font))
         self.cursor_x += word_width + space_width  # Add space after each word
-
-
-# def layout(tokens, font):
-#     display_list = []
-#     cursor_x, cursor_y = HSTEP, VSTEP
-#     weight = "normal"
-#     style = "roman"
-
-#     for tok in tokens:
-#         if isinstance(tok, Text):
-#             for word in tok.text.split():
-#                 font = tkinter.font.Font(size=16, weight=weight, slant=style)
-#                 word_width = font.measure(word)
-#                 space_width = font.measure(" ")
-
-#                 # !: Idk, something is wrong with spacing here
-
-#                 if cursor_x + word_width + space_width > WIDTH - HSTEP:
-#                     cursor_y += font.metrics("linespace") * 1.25  # Move to next line
-#                     cursor_x = HSTEP
-
-#                 display_list.append((cursor_x, cursor_y, word, font))
-#                 cursor_x += word_width + space_width  # Add space after each word
-
-#             cursor_y += font.metrics("linespace") * 1.25  # Add space after each line
-#             cursor_x = HSTEP
-
-#         elif tok.tag == "i":
-#             style = "italic"
-#         elif tok.tag == "/i":
-#             style = "roman"
-#         elif tok.tag == "b":
-#             weight = "bold"
-#         elif tok.tag == "/b":
-#             weight = "normal"
-
-#     return display_list
+        self.line.append((self.cursor_x, word, font))
 
 
 class Browser:
