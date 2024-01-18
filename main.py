@@ -56,7 +56,6 @@ class Layout:
             self.token(tok)
 
     def token(self, tok):
-        # for tok in tokens:
         if isinstance(tok, Text):
             font = tkinter.font.Font(size=16, weight=self.weight, slant=self.style)  # type: ignore
 
@@ -141,18 +140,10 @@ class Browser:
         self.window.bind("<Configure>", self.on_resize)
         self.current_tokens = ""
 
-        self.bi_times = tkinter.font.Font(
-            family="Times",
-            size=16,
-            weight="normal",
-            slant="roman",
-        )
-
     def load(self, url):
         """Send the request, recieve and show body."""
 
         if url == "about:blank":
-            self.current_text = ""
             self.display_list = []
             self.draw()
             return True
