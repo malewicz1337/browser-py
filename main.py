@@ -60,7 +60,9 @@ class Layout:
         self.weight = "normal"
         self.style = "roman"
         self.size = 16
+
         self.centering = False
+        # self.is_superscript = False
 
         self.flush()
 
@@ -91,7 +93,8 @@ class Layout:
         else:
             for x, word, font in self.line:
                 y = baseline - font.metrics("ascent")
-                self.display_list.append((x, y, word, font))
+
+                self.display_list.append((x, word, font))
 
         max_descent = max([font.metrics("descent") for x, word, font in self.line])
 
@@ -133,6 +136,14 @@ class Layout:
             self.flush()
             self.centering = False
             self.size -= 10
+        # elif tok.tag == "sup":
+        #     self.flush()
+        #     self.is_superscript = True
+        #     self.size = self.size // 2
+        # elif tok.tag == "/sup":
+        #     self.flush()
+        #     self.is_superscript = False
+        #     self.size = self.size * 2
 
     def word(self, word):
         font = get_font(self.size, self.weight, self.style)
@@ -159,8 +170,16 @@ class Layout:
             self.flush()
 
         if self.cursor_x + word_width + space_width > WIDTH - HSTEP:
-            self.cursor_y += font.metrics("linespace") * 1.25  # Move to next line
+            self.cursor_y += font.metrics("linespace") * 1.25
             self.cursor_x = HSTEP
+
+        # if self.is_superscript:
+        #     ascent = font.metrics("ascent")
+        #     normal_font = get_font(self.size * 2, self.weight, self.style)
+        #     normal_ascent = normal_font.metrics("ascent")
+        #     y_offset = normal_ascent - ascent
+        # else:
+        #     y_offset = 0
 
         self.line.append((self.cursor_x, word, font))
 
