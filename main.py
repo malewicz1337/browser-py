@@ -60,6 +60,7 @@ class Layout:
         self.weight = "normal"
         self.style = "roman"
         self.size = 16
+        self.centering = False
 
         self.flush()
 
@@ -70,12 +71,27 @@ class Layout:
         if not self.line:
             return
 
+        font = get_font(self.size, self.weight, self.style)
+
         max_ascent = max([font.metrics("ascent") for x, word, font in self.line])
         baseline = self.cursor_y + 1.25 * max_ascent
 
-        for x, word, font in self.line:
-            y = baseline - font.metrics("ascent")
-            self.display_list.append((x, y, word, font))
+        if self.centering:
+            line_width = sum(font.measure(word) for x, word, font in self.line)
+            line_width += (len(self.line) - 1) * font.measure(" ")
+
+            centered_x = (WIDTH - line_width) // 2
+            temp_cursor_x = max(HSTEP, centered_x)
+
+            for x, word, font in self.line:
+                y = baseline - font.metrics("ascent")
+                self.display_list.append((temp_cursor_x, y, word, font))
+                temp_cursor_x += font.measure(word) + font.measure(" ")
+
+        else:
+            for x, word, font in self.line:
+                y = baseline - font.metrics("ascent")
+                self.display_list.append((x, y, word, font))
 
         max_descent = max([font.metrics("descent") for x, word, font in self.line])
 
@@ -109,15 +125,36 @@ class Layout:
         elif tok.tag == "/p":
             self.flush()
             self.cursor_y += VSTEP
+        elif tok.tag.startswith("h1"):
+            self.flush()
+            self.centering = True
+            self.size += 10
+        elif tok.tag == "/h1":
+            self.flush()
+            self.centering = False
+            self.size -= 10
 
     def word(self, word):
         font = get_font(self.size, self.weight, self.style)
         word_width = font.measure(word)
         space_width = font.measure(" ")
 
+        if self.centering:
+            line_width = (
+                sum(font.measure(w) for _, w, _ in self.line)
+                + len(self.line) * space_width
+            )
+            if self.line:
+                line_width += space_width
+            line_width += word_width
+
+            centered_x = (WIDTH - line_width) // 2
+            self.cursor_x = max(HSTEP, centered_x)
+
         if self.cursor_x + word_width > WIDTH - HSTEP:
             self.flush()
 
+        # *: Do I even need this ?
         if self.line and self.cursor_x + word_width + space_width > WIDTH - HSTEP:
             self.flush()
 
@@ -125,10 +162,9 @@ class Layout:
             self.cursor_y += font.metrics("linespace") * 1.25  # Move to next line
             self.cursor_x = HSTEP
 
-        # self.display_list.append((self.cursor_x, self.cursor_y, word, font))
         self.line.append((self.cursor_x, word, font))
 
-        self.cursor_x += word_width + space_width  # Add space after each word
+        self.cursor_x += word_width + space_width
 
 
 class Browser:
@@ -144,8 +180,6 @@ class Browser:
         self.current_tokens = ""
 
     def load(self, url):
-        """Send the request, recieve and show body."""
-
         if url == "about:blank":
             self.display_list = []
             self.draw()
@@ -198,7 +232,7 @@ class Browser:
         elif self.window.tk.call("tk", "windowingsystem") == "aqua":
             delta //= 3
 
-        scroll_speed = 50
+        scroll_speed = 100
         self.scroll -= delta * scroll_speed
 
         # Boundary check
