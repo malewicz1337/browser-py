@@ -28,8 +28,6 @@ class Tag:
 
 
 def lex(body):
-    """Remove html tags from body and return text only."""
-
     out = []
     buffer = ""
     in_tag = False
@@ -73,13 +71,13 @@ class Layout:
             return
 
         max_ascent = max([font.metrics("ascent") for x, word, font in self.line])
-        max_descent = max([font.metrics("descent") for x, word, font in self.line])
-
         baseline = self.cursor_y + 1.25 * max_ascent
 
         for x, word, font in self.line:
             y = baseline - font.metrics("ascent")
             self.display_list.append((x, y, word, font))
+
+        max_descent = max([font.metrics("descent") for x, word, font in self.line])
 
         self.cursor_y = baseline + 1.25 * max_descent
         self.cursor_x = HSTEP
@@ -87,15 +85,8 @@ class Layout:
 
     def token(self, tok):
         if isinstance(tok, Text):
-            # font = tkinter.font.Font(size=self.size, weight=self.weight, slant=self.style)  # type: ignore
-
             for word in tok.text.split():
                 self.word(word)
-
-            # self.cursor_y += (
-            #     font.metrics("linespace") * 1.25
-            # )  # Add space after each line
-            # self.cursor_x = HSTEP
 
         elif tok.tag == "i":
             self.style = "italic"
@@ -127,13 +118,17 @@ class Layout:
         if self.cursor_x + word_width > WIDTH - HSTEP:
             self.flush()
 
+        if self.line and self.cursor_x + word_width + space_width > WIDTH - HSTEP:
+            self.flush()
+
         if self.cursor_x + word_width + space_width > WIDTH - HSTEP:
             self.cursor_y += font.metrics("linespace") * 1.25  # Move to next line
             self.cursor_x = HSTEP
 
-        self.display_list.append((self.cursor_x, self.cursor_y, word, font))
-        self.cursor_x += word_width + space_width  # Add space after each word
+        # self.display_list.append((self.cursor_x, self.cursor_y, word, font))
         self.line.append((self.cursor_x, word, font))
+
+        self.cursor_x += word_width + space_width  # Add space after each word
 
 
 class Browser:
