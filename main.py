@@ -137,30 +137,6 @@ class HTMLParser:
         return self.unfinished.pop()
 
 
-def lex(body):
-    out = []
-    buffer = ""
-    in_tag = False
-
-    for c in body:
-        if c == "<":
-            in_tag = True
-            if buffer:
-                out.append(Text(buffer))
-            buffer = ""
-        elif c == ">":
-            in_tag = False
-            out.append(Element(buffer))
-            buffer = ""
-        else:
-            buffer += c
-
-    if not in_tag and buffer:
-        out.append(Text(buffer))
-
-    return out
-
-
 class Layout:
     def __init__(self, tokens):
         self.display_list = []
@@ -362,7 +338,8 @@ class Browser:
 
         try:
             body = url.request()
-            tokens = lex(body)
+            # !: FIX
+            tokens = HTMLParser(body)
             self.current_tokens = tokens
             self.display_list = Layout(tokens).display_list
             self.draw()
