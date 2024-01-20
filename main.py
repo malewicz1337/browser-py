@@ -64,6 +64,17 @@ class HTMLParser:
             "track",
             "wbr",
         ]
+        self.HEAD_TAGS = [
+            "base",
+            "basefont",
+            "bgsound",
+            "noscript",
+            "link",
+            "meta",
+            "title",
+            "style",
+            "script",
+        ]
 
     def parse(self):
         text = ""
@@ -80,8 +91,10 @@ class HTMLParser:
                 text = ""
             else:
                 text += c
+
         if not in_tag and text:
             self.add_text(text)
+
         return self.finish()
 
     def get_attributes(self, text):
@@ -104,6 +117,9 @@ class HTMLParser:
     def add_text(self, text):
         if text.isspace():
             return
+
+        self.implicit_tags(None)
+        print(self.unfinished)
         parent = self.unfinished[-1]
         node = Text(text, parent)
         parent.children.append(node)
@@ -112,6 +128,9 @@ class HTMLParser:
         tag, attributes = self.get_attributes(tag)
         if tag.startswith("!"):
             return
+
+        self.implicit_tags(tag)
+
         if tag.startswith("/"):
             if len(self.unfinished) == 1:
                 return
@@ -129,7 +148,27 @@ class HTMLParser:
             node = Element(tag, attributes, parent)
             self.unfinished.append(node)
 
+    def implicit_tags(self, tag):
+        while True:
+            open_tags = [node.tag for node in self.unfinished]
+            if open_tags == [] and tag != "html":
+                self.add_tag("html")
+            elif open_tags == ["html"] and tag not in ["head", "body", "/html"]:
+                if tag in self.HEAD_TAGS:
+                    self.add_tag("head")
+                else:
+                    self.add_tag("body")
+            elif (
+                open_tags == ["html", "head"] and tag not in ["/head"] + self.HEAD_TAGS
+            ):
+                self.add_tag("/head")
+            else:
+                break
+
     def finish(self):
+        if not self.unfinished:
+            self.implicit_tags(None)
+
         while len(self.unfinished) > 1:
             node = self.unfinished.pop()
             parent = self.unfinished[-1]
@@ -138,7 +177,7 @@ class HTMLParser:
 
 
 class Layout:
-    def __init__(self, tokens):
+    def __init__(self, nodes):
         self.display_list = []
         self.line = []
         self.cursor_x = HSTEP
@@ -148,14 +187,23 @@ class Layout:
         self.size = 16
 
         self.centering = False
-        # self.superscript = False
+        self.superscript = False
         self.pre = False
         self.abbr = False
 
         self.flush()
 
-        for tok in tokens:
-            self.token(tok)
+        self.recurse(nodes)
+
+    def recurse(self, tree):
+        if isinstance(tree, Text):
+            for word in tree.text.split():
+                self.word(word)
+        else:
+            self.open_tag(tree.tag)
+            for child in tree.children:
+                self.recurse(child)
+            self.close_tag(tree.tag)
 
     def flush(self):
         if not self.line:
@@ -163,7 +211,7 @@ class Layout:
 
         font = get_font(self.size, self.weight, self.style)
 
-        max_ascent = max([font.metrics("ascent") for x, word, font in self.line])
+        max_ascent = max([font.metrics("ascent") for _x, _word, font in self.line])
         baseline = self.cursor_y + 1.25 * max_ascent
 
         if self.centering:
@@ -190,55 +238,53 @@ class Layout:
         self.cursor_x = HSTEP
         self.line = []
 
-    def token(self, tok):
-        if isinstance(tok, Text):
-            for word in tok.text.split():
-                self.word(word)
-
-        elif tok.tag == "i":
+    def open_tag(self, tag):
+        if tag == "i":
             self.style = "italic"
-        elif tok.tag == "/i":
-            self.style = "roman"
-        elif tok.tag == "b":
+        elif tag == "b":
             self.weight = "bold"
-        elif tok.tag == "/b":
-            self.weight = "normal"
-        elif tok.tag == "small":
+        elif tag == "small":
             self.size -= 2
-        elif tok.tag == "/small":
-            self.size += 2
-        elif tok.tag == "big":
+        elif tag == "big":
             self.size += 4
-        elif tok.tag == "/big":
-            self.size -= 4
-        elif tok.tag == "br":
+        elif tag == "br":
             self.flush()
-        elif tok.tag == "/p":
-            self.flush()
-            self.cursor_y += VSTEP
-        elif tok.tag.startswith("h1"):
+        elif tag == "h1":
             self.flush()
             self.centering = True
             self.size += 10
-        elif tok.tag == "/h1":
+        elif tag == "sup":
             self.flush()
-            self.centering = False
-            self.size -= 10
-        # elif tok.tag == "sup":
-        #     self.flush()
-        #     self.superscript = True
-        #     self.size = self.size // 2
-        # elif tok.tag == "/sup":
-        #     self.flush()
-        #     self.superscript = False
-        #     self.size = self.size * 2
-        elif tok.tag == "pre":
+            self.superscript = True
+            self.size = self.size // 2
+        elif tag == "pre":
             self.flush()
             self.pre = True
             self.weight = "bold"
             self.style = "roman"
             self.size = 16
-        elif tok.tag == "/pre":
+
+    def close_tag(self, tag):
+        if tag == "i":
+            self.style = "roman"
+        elif tag == "b":
+            self.weight = "normal"
+        elif tag == "small":
+            self.size += 2
+        elif tag == "big":
+            self.size -= 4
+        elif tag == "/p":
+            self.flush()
+            self.cursor_y += VSTEP
+        elif tag == "h1":
+            self.flush()
+            self.centering = False
+            self.size -= 10
+        elif tag == "sup":
+            self.flush()
+            self.superscript = False
+            self.size = self.size * 2
+        elif tag == "pre":
             self.flush()
             self.pre = False
             self.weight = "bold"
@@ -324,11 +370,11 @@ class Browser:
         self.canvas = tkinter.Canvas(self.window, width=WIDTH, height=HEIGHT)
         self.canvas.pack(fill="both", expand=True)
         self.scroll = 0
+        self.nodes = None
         self.window.bind("<Down>", self.scrolldown)
         self.window.bind("<Up>", self.scrollup)
         self.window.bind("<MouseWheel>", self.wheelscroll)
         self.window.bind("<Configure>", self.on_resize)
-        self.current_tokens = ""
 
     def load(self, url):
         if url == "about:blank":
@@ -337,18 +383,16 @@ class Browser:
             return True
 
         try:
+            print(url)
             body = url.request()
-            # !: FIX
-            tokens = HTMLParser(body)
-            self.current_tokens = tokens
-            self.display_list = Layout(tokens).display_list
+            self.nodes = HTMLParser(body).parse()
+            self.display_list = Layout(self.nodes).display_list
             self.draw()
 
             return True
 
         except Exception as e:
-            print("Error at load method on Browser: ", e)
-            print("Failed to load", url)
+            print("Error at load method on Browser: ", e, "Failed to load: ", url)
             self.load("about:blank")
             return False
 
@@ -364,8 +408,9 @@ class Browser:
     def on_resize(self, event):
         global WIDTH, HEIGHT
         WIDTH, HEIGHT = event.width, event.height
-        self.display_list = Layout(self.current_tokens).display_list
-        self.draw()
+        if self.nodes:
+            self.display_list = Layout(self.nodes).display_list
+            self.draw()
 
     def scrolldown(self, e):
         self.scroll += SCROLL_STEP
