@@ -108,6 +108,10 @@ class HTMLParser:
                 if len(self.unfinished) == 1:
                     return
                 if self.unfinished:
+                    # expected_tag = self.unfinished[-1].tag
+                    # if tag[1:] != expected_tag:
+                    #     self.close_unclosed_tag(expected_tag)
+
                     node = self.unfinished.pop()
                     if self.unfinished:
                         parent = self.unfinished[-1]

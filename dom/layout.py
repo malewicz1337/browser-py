@@ -27,9 +27,6 @@ class Layout:
         self.size = 16
 
         self.centering = False
-        # self.superscript = False
-        self.pre = False
-        self.abbr = False
 
         self.flush()
         self.recurse(nodes)
@@ -85,22 +82,15 @@ class Layout:
             self.size -= 2
         elif tag == "big":
             self.size += 4
+        elif tag == "p":
+            self.flush()
+            self.cursor_y += VSTEP
         elif tag == "br":
             self.flush()
         elif tag == "h1":
             self.flush()
             self.centering = True
             self.size += 10
-        # elif tag == "sup":
-        #     self.flush()
-        #     self.superscript = True
-        #     self.size = self.size // 2
-        elif tag == "pre":
-            self.flush()
-            self.pre = True
-            self.weight = "bold"
-            self.style = "roman"
-            self.size = 16
 
     def close_tag(self, tag):
         if tag == "i":
@@ -118,87 +108,35 @@ class Layout:
             self.flush()
             self.centering = False
             self.size -= 10
-        # elif tag == "sup":
-        #     self.flush()
-        #     self.superscript = False
-        #     self.size = self.size * 2
-        elif tag == "pre":
-            self.flush()
-            self.pre = False
-            self.weight = "bold"
-            self.style = "roman"
-            self.size = 16
 
     def word(self, word):
         font = get_font(self.size, self.weight, self.style)
         word_width = font.measure(word)
         space_width = font.measure(" ")
 
-        if self.pre:
-            font = tkinter.font.Font(
-                size=self.size, weight="normal", slant="roman", family="Courier New"
+        if self.centering:
+            line_width = (
+                sum(font.measure(word) for _x, word, font in self.line)
+                + len(self.line) * space_width
             )
+            if self.line:
+                line_width += space_width
+            line_width += word_width
 
-            for char in word:
-                char_width = font.measure(char)
-                if char == "\n":
-                    self.flush()
-                    self.cursor_y += font.metrics("linespace") * 1.25
-                    self.cursor_x = HSTEP
-                    continue
+            centered_x = (WIDTH - line_width) // 2
+            self.cursor_x = max(HSTEP, centered_x)
 
-                if self.cursor_x + char_width > WIDTH - HSTEP:
-                    self.flush()
-                    self.cursor_y += font.metrics("linespace") * 1.25
-                    self.cursor_x = HSTEP
+        if self.cursor_x + word_width > WIDTH - HSTEP:
+            self.flush()
 
-                self.line.append((self.cursor_x, char, font))
-                self.cursor_x += char_width
+        # *: Yes, I actually need this)))
+        if self.line and self.cursor_x + word_width + space_width > WIDTH - HSTEP:
+            self.flush()
 
-        elif self.abbr:
-            for char in word:
-                if char.islower():
-                    small_cap_font = get_font(self.size, "bold", "roman")
-                    self.line.append((self.cursor_x, char.upper(), small_cap_font))
-                else:
-                    font = get_font(self.size, self.weight, self.style)
-                    self.line.append((self.cursor_x, char, font))
+        if self.cursor_x + word_width + space_width > WIDTH - HSTEP:
+            self.cursor_y += font.metrics("linespace") * 1.25
+            self.cursor_x = HSTEP
 
-                char_width = font.measure(char)
-                self.cursor_x += char_width
+        self.line.append((self.cursor_x, word, font))
 
-        else:
-            if self.centering:
-                line_width = (
-                    sum(font.measure(word) for _x, word, font in self.line)
-                    + len(self.line) * space_width
-                )
-                if self.line:
-                    line_width += space_width
-                line_width += word_width
-
-                centered_x = (WIDTH - line_width) // 2
-                self.cursor_x = max(HSTEP, centered_x)
-
-            if self.cursor_x + word_width > WIDTH - HSTEP:
-                self.flush()
-
-            # *: Do I even need this ?
-            if self.line and self.cursor_x + word_width + space_width > WIDTH - HSTEP:
-                self.flush()
-
-            if self.cursor_x + word_width + space_width > WIDTH - HSTEP:
-                self.cursor_y += font.metrics("linespace") * 1.25
-                self.cursor_x = HSTEP
-
-            # if self.superscript:
-            #     ascent = font.metrics("ascent")
-            #     normal_font = get_font(self.size * 2, self.weight, self.style)
-            #     normal_ascent = normal_font.metrics("ascent")
-            #     y_offset = normal_ascent - ascent
-            # else:
-            #     y_offset = 0
-
-            self.line.append((self.cursor_x, word, font))
-
-            self.cursor_x += word_width + space_width
+        self.cursor_x += word_width + space_width
