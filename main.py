@@ -1,3 +1,4 @@
+from ast import Try
 import tkinter
 import tkinter.font
 
@@ -48,33 +49,35 @@ class HTMLParser:
     def __init__(self, body):
         self.body = body
         self.unfinished = []
-        self.SELF_CLOSING_TAGS = [
-            "area",
-            "base",
-            "br",
-            "col",
-            "embed",
-            "hr",
-            "img",
-            "input",
-            "link",
-            "meta",
-            "param",
-            "source",
-            "track",
-            "wbr",
-        ]
-        self.HEAD_TAGS = [
-            "base",
-            "basefont",
-            "bgsound",
-            "noscript",
-            "link",
-            "meta",
-            "title",
-            "style",
-            "script",
-        ]
+
+    HEAD_TAGS = [
+        "base",
+        "basefont",
+        "bgsound",
+        "noscript",
+        "link",
+        "meta",
+        "title",
+        "style",
+        "script",
+    ]
+
+    SELF_CLOSING_TAGS = [
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "param",
+        "source",
+        "track",
+        "wbr",
+    ]
 
     def parse(self):
         text = ""
@@ -101,28 +104,35 @@ class HTMLParser:
         parts = text.split()
         tag = parts[0].casefold()
         attributes = {}
-        for attrpair in parts[1:]:
-            if "=" in attrpair:
-                key, value = attrpair.split("=", 1)
-                attributes[key.casefold()] = value
 
-                if len(value) > 2 and value[0] in ["'", '"']:
-                    value = value[1:-1]
+        try:
+            for attrpair in parts[1:]:
+                if "=" in attrpair:
+                    key, value = attrpair.split("=", 1)
+                    attributes[key.casefold()] = value
 
-            else:
-                attributes[attrpair.casefold()] = ""
+                    if len(value) > 2 and value[0] in ["'", '"']:
+                        value = value[1:-1]
 
-        return tag, attributes
+                else:
+                    attributes[attrpair.casefold()] = ""
+
+            return tag, attributes
+        except Exception as e:
+            print("Error at HTMLParser get attributes method ", e)
+            return tag, attributes
 
     def add_text(self, text):
         if text.isspace():
             return
 
-        self.implicit_tags(None)
-        print(self.unfinished)
-        parent = self.unfinished[-1]
-        node = Text(text, parent)
-        parent.children.append(node)
+        try:
+            self.implicit_tags(None)
+            parent = self.unfinished[-1]
+            node = Text(text, parent)
+            parent.children.append(node)
+        except Exception as e:
+            print("Error at HTMLParser get text method ", e)
 
     def add_tag(self, tag):
         tag, attributes = self.get_attributes(tag)
@@ -131,49 +141,60 @@ class HTMLParser:
 
         self.implicit_tags(tag)
 
-        if tag.startswith("/"):
-            if len(self.unfinished) == 1:
-                return
-            node = self.unfinished.pop()
-            parent = self.unfinished[-1]
-            parent.children.append(node)
+        try:
+            if tag.startswith("/"):
+                if len(self.unfinished) == 1:
+                    return
+                node = self.unfinished.pop()
+                parent = self.unfinished[-1]
+                parent.children.append(node)
 
-        elif tag in self.SELF_CLOSING_TAGS:
-            parent = self.unfinished[-1]
-            node = Element(tag, attributes, parent)
-            parent.children.append(node)
+            elif tag in self.SELF_CLOSING_TAGS:
+                parent = self.unfinished[-1]
+                node = Element(tag, attributes, parent)
+                parent.children.append(node)
 
-        else:
-            parent = self.unfinished[-1] if self.unfinished else None
-            node = Element(tag, attributes, parent)
-            self.unfinished.append(node)
+            else:
+                parent = self.unfinished[-1] if self.unfinished else None
+                node = Element(tag, attributes, parent)
+                self.unfinished.append(node)
+        except Exception as e:
+            print("Error at HTMLParser add tag method ", e)
 
     def implicit_tags(self, tag):
-        while True:
-            open_tags = [node.tag for node in self.unfinished]
-            if open_tags == [] and tag != "html":
-                self.add_tag("html")
-            elif open_tags == ["html"] and tag not in ["head", "body", "/html"]:
-                if tag in self.HEAD_TAGS:
-                    self.add_tag("head")
+        try:
+            while True:
+                open_tags = [node.tag for node in self.unfinished]
+                if open_tags == [] and tag != "html":
+                    self.add_tag("html")
+                elif open_tags == ["html"] and tag not in ["head", "body", "/html"]:
+                    if tag in self.HEAD_TAGS:
+                        self.add_tag("head")
+                    else:
+                        self.add_tag("body")
+                elif (
+                    open_tags == ["html", "head"]
+                    and tag not in ["/head"] + self.HEAD_TAGS
+                ):
+                    self.add_tag("/head")
                 else:
-                    self.add_tag("body")
-            elif (
-                open_tags == ["html", "head"] and tag not in ["/head"] + self.HEAD_TAGS
-            ):
-                self.add_tag("/head")
-            else:
-                break
+                    break
+        except Exception as e:
+            print("Error at HTMLParser implicit tags method ", e)
 
     def finish(self):
         if not self.unfinished:
             self.implicit_tags(None)
 
-        while len(self.unfinished) > 1:
-            node = self.unfinished.pop()
-            parent = self.unfinished[-1]
-            parent.children.append(node)
-        return self.unfinished.pop()
+        try:
+            while len(self.unfinished) > 1:
+                node = self.unfinished.pop()
+                parent = self.unfinished[-1]
+                parent.children.append(node)
+            return self.unfinished.pop()
+
+        except Exception as e:
+            print("Error at HTMLParser finish method ", e)
 
 
 class Layout:
@@ -215,7 +236,7 @@ class Layout:
         baseline = self.cursor_y + 1.25 * max_ascent
 
         if self.centering:
-            line_width = sum(font.measure(word) for x, word, font in self.line)
+            line_width = sum(font.measure(word) for _x, word, font in self.line)
             line_width += (len(self.line) - 1) * font.measure(" ")
 
             centered_x = (WIDTH - line_width) // 2
@@ -229,10 +250,9 @@ class Layout:
         else:
             for x, word, font in self.line:
                 y = baseline - font.metrics("ascent")
+                self.display_list.append((x, y, word, font))
 
-                self.display_list.append((x, word, font))
-
-        max_descent = max([font.metrics("descent") for x, word, font in self.line])
+        max_descent = max([font.metrics("descent") for _x, _word, font in self.line])
 
         self.cursor_y = baseline + 1.25 * max_descent
         self.cursor_x = HSTEP
@@ -253,10 +273,10 @@ class Layout:
             self.flush()
             self.centering = True
             self.size += 10
-        elif tag == "sup":
-            self.flush()
-            self.superscript = True
-            self.size = self.size // 2
+        # elif tag == "sup":
+        #     self.flush()
+        #     self.superscript = True
+        #     self.size = self.size // 2
         elif tag == "pre":
             self.flush()
             self.pre = True
@@ -273,17 +293,17 @@ class Layout:
             self.size += 2
         elif tag == "big":
             self.size -= 4
-        elif tag == "/p":
+        elif tag == "p":
             self.flush()
             self.cursor_y += VSTEP
         elif tag == "h1":
             self.flush()
             self.centering = False
             self.size -= 10
-        elif tag == "sup":
-            self.flush()
-            self.superscript = False
-            self.size = self.size * 2
+        # elif tag == "sup":
+        #     self.flush()
+        #     self.superscript = False
+        #     self.size = self.size * 2
         elif tag == "pre":
             self.flush()
             self.pre = False
@@ -383,16 +403,14 @@ class Browser:
             return True
 
         try:
-            print(url)
             body = url.request()
             self.nodes = HTMLParser(body).parse()
             self.display_list = Layout(self.nodes).display_list
             self.draw()
-
             return True
 
         except Exception as e:
-            print("Error at load method on Browser: ", e, "Failed to load: ", url)
+            print("Error at load method on Browser: ", e)
             self.load("about:blank")
             return False
 
@@ -442,5 +460,9 @@ if __name__ == "__main__":
     import sys
     from url import URL
 
-    Browser().load(URL(sys.argv[1]))
+    if len(sys.argv) > 1:
+        Browser().load(URL(sys.argv[1]))
+    else:
+        Browser().load(URL())
+
     tkinter.mainloop()

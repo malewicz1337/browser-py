@@ -9,7 +9,7 @@ from sockets import Sockets
 class URL:
     """URL class for handling HTTP requests and responses."""
 
-    def __init__(self, url="file:///index.html"):  # default file path
+    def __init__(self, url="file://index.html"):  # default file path
         self.url = url
 
         self.view_source = False
