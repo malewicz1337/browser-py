@@ -1,5 +1,5 @@
 import tkinter.font
-from text import Text
+from dom.text import Text
 
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18

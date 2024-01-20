@@ -1,7 +1,7 @@
 if __name__ == "__main__":
     import sys
     import tkinter
-    from url import URL
+    from network.url import URL
     from browser import Browser
 
     if len(sys.argv) > 1:

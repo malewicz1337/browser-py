@@ -2,14 +2,14 @@ import urllib.parse
 import base64
 import html
 import gzip
-from cache import Cache
-from sockets import Sockets
+from network.cache import Cache
+from network.sockets import Sockets
 
 
 class URL:
     """URL class for handling HTTP requests and responses."""
 
-    def __init__(self, url="file://index.html"):  # default file path
+    def __init__(self, url="file://html/index.html"):  # default file path
         self.url = url
 
         self.view_source = False

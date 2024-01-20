@@ -1,40 +1,40 @@
-from text import Text
-from element import Element
+from dom.text import Text
+from dom.element import Element
+
+HEAD_TAGS = [
+    "base",
+    "basefont",
+    "bgsound",
+    "noscript",
+    "link",
+    "meta",
+    "title",
+    "style",
+    "script",
+]
+
+SELF_CLOSING_TAGS = [
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+]
 
 
 class HTMLParser:
     def __init__(self, body):
         self.body = body
         self.unfinished = []
-
-    HEAD_TAGS = [
-        "base",
-        "basefont",
-        "bgsound",
-        "noscript",
-        "link",
-        "meta",
-        "title",
-        "style",
-        "script",
-    ]
-
-    SELF_CLOSING_TAGS = [
-        "area",
-        "base",
-        "br",
-        "col",
-        "embed",
-        "hr",
-        "img",
-        "input",
-        "link",
-        "meta",
-        "param",
-        "source",
-        "track",
-        "wbr",
-    ]
 
     def parse(self):
         text = ""
@@ -110,7 +110,7 @@ class HTMLParser:
                 parent = self.unfinished[-1]
                 parent.children.append(node)
 
-            elif tag in self.SELF_CLOSING_TAGS:
+            elif tag in SELF_CLOSING_TAGS:
                 if self.unfinished:
                     parent = self.unfinished[-1]
                     node = Element(tag, attributes, parent)
@@ -134,14 +134,11 @@ class HTMLParser:
                 if open_tags == [] and tag != "html":
                     self.add_tag("html")
                 elif open_tags == ["html"] and tag not in ["head", "body", "/html"]:
-                    if tag in self.HEAD_TAGS:
+                    if tag in HEAD_TAGS:
                         self.add_tag("head")
                     else:
                         self.add_tag("body")
-                elif (
-                    open_tags == ["html", "head"]
-                    and tag not in ["/head"] + self.HEAD_TAGS
-                ):
+                elif open_tags == ["html", "head"] and tag not in ["/head"] + HEAD_TAGS:
                     self.add_tag("/head")
                 else:
                     break

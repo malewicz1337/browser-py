@@ -1,7 +1,7 @@
 import tkinter
 
-from layout import Layout
-from htmlparser import HTMLParser
+from dom.layout import Layout
+from dom.htmlparser import HTMLParser
 
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
