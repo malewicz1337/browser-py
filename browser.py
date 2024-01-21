@@ -6,7 +6,14 @@ from dom.htmlparser import HTMLParser
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
 cursor_x, cursor_y = HSTEP, VSTEP
-SCROLL_STEP = 100
+SCROLL_STEP = 10
+
+
+def paint_tree(layout_object, display_list):
+    display_list.extend(layout_object.paint())
+
+    for child in layout_object.children:
+        paint_tree(child, display_list)
 
 
 class Browser:
@@ -32,7 +39,9 @@ class Browser:
             self.nodes = HTMLParser(body).parse()
             self.document = DocumentLayout(self.nodes)
             self.document.layout()
-            self.display_list = self.document.display_list
+            # self.display_list = self.document.display_list
+            self.display_list = []
+            paint_tree(self.document, self.display_list)
             self.draw()
             return True
 
@@ -47,7 +56,7 @@ class Browser:
             if y > self.scroll + HEIGHT or y + VSTEP < self.scroll:
                 continue
             self.canvas.create_text(
-                x, (y - self.scroll), text=text, font=font, anchor="nw"
+                x, (y - self.scroll), text=text, font=font, anchor="nw"  # type: ignore
             )
 
     def on_resize(self, event):
