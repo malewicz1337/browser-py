@@ -16,8 +16,27 @@ def get_font(size, weight, slant):
     return FONTS[key][0]
 
 
-class Layout:
-    def __init__(self, nodes):
+class DocumentLayout:
+    def __init__(self, node):
+        self.node = node
+        self.parent = None
+        self.children = []
+
+    def layout(self):
+        child = BlockLayout(self.node, self, None)
+        self.children.append(child)
+        child.layout()
+        self.display_list = child.display_list
+
+
+class BlockLayout:
+    def __init__(self, node, parent, previous):
+        self.node = node
+        self.parent = parent
+        self.previous = previous
+        self.children = []
+
+    def layout(self):
         self.display_list = []
         self.line = []
         self.cursor_x = HSTEP
@@ -29,7 +48,7 @@ class Layout:
         self.centering = False
 
         self.flush()
-        self.recurse(nodes)
+        self.recurse(self.node)
 
     def recurse(self, tree):
         if isinstance(tree, Text):

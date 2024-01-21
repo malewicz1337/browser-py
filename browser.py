@@ -1,6 +1,6 @@
 import tkinter
 
-from dom.layout import Layout
+from dom.layout import DocumentLayout
 from dom.htmlparser import HTMLParser
 
 WIDTH, HEIGHT = 800, 600
@@ -30,7 +30,9 @@ class Browser:
         try:
             body = url.request()
             self.nodes = HTMLParser(body).parse()
-            self.display_list = Layout(self.nodes).display_list
+            self.document = DocumentLayout(self.nodes)
+            self.document.layout()
+            self.display_list = self.document.display_list
             self.draw()
             return True
 
@@ -52,7 +54,9 @@ class Browser:
         global WIDTH, HEIGHT
         WIDTH, HEIGHT = event.width, event.height
         if self.nodes:
-            self.display_list = Layout(self.nodes).display_list
+            self.document = DocumentLayout(self.nodes)
+            self.document.layout()
+            self.display_list = self.document.display_list
             self.draw()
 
     def scrolldown(self, e):
