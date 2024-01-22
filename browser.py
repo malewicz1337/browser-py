@@ -70,7 +70,7 @@ class Browser:
             self.draw()
 
     def scrolldown(self, e):
-        max_y = max(self.document.height + 2 * VSTEP - HEIGHT, 0)
+        max_y = max(self.document.height or 0 + 2 * VSTEP - HEIGHT, 0)
         print("Scrolling down, current scroll:", self.scroll, "max_y:", max_y)
         self.scroll = min(self.scroll + SCROLL_STEP, max_y)
         self.draw()
@@ -88,7 +88,7 @@ class Browser:
             delta //= 3
 
         scroll_speed = SCROLL_STEP
-        max_y = max(self.document.height + 2 * VSTEP - HEIGHT, 0)
+        max_y = max(self.document.height or 0 + 2 * VSTEP - HEIGHT, 0)
 
         self.scroll -= delta * scroll_speed
         self.scroll = max(0, min(self.scroll, max_y))

@@ -92,11 +92,6 @@ class DrawRect:
 
 class DocumentLayout:
     def __init__(self, node):
-        # self.x = None
-        # self.y = None
-        # self.width = None
-        # self.height = None
-
         self.node = node
         self.parent = None
         self.previous = None
