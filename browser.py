@@ -52,12 +52,12 @@ class Browser:
 
     def draw(self):
         self.canvas.delete("all")
-        for x, y, text, font in self.display_list:
-            if y > self.scroll + HEIGHT or y + VSTEP < self.scroll:
+        for cmd in self.display_list:
+            if cmd.top > self.scroll + HEIGHT:
                 continue
-            self.canvas.create_text(
-                x, (y - self.scroll), text=text, font=font, anchor="nw"  # type: ignore
-            )
+            if cmd.bottom < self.scroll:
+                continue
+            cmd.execute(self.scroll, self.canvas)
 
     def on_resize(self, event):
         global WIDTH, HEIGHT
@@ -65,12 +65,14 @@ class Browser:
         if self.nodes:
             self.document = DocumentLayout(self.nodes)
             self.document.layout()
-            self.display_list = self.document.display_list
+            self.display_list = []
+            paint_tree(self.document, self.display_list)
             self.draw()
 
     def scrolldown(self, e):
-        self.scroll += SCROLL_STEP
-        self.scroll = min(self.scroll, len(self.display_list) * VSTEP - HEIGHT)
+        max_y = max(self.document.height + 2 * VSTEP - HEIGHT, 0)
+        print("Scrolling down, current scroll:", self.scroll, "max_y:", max_y)
+        self.scroll = min(self.scroll + SCROLL_STEP, max_y)
         self.draw()
 
     def scrollup(self, e):
@@ -85,10 +87,10 @@ class Browser:
         elif self.window.tk.call("tk", "windowingsystem") == "aqua":
             delta //= 3
 
-        scroll_speed = 100
-        self.scroll -= delta * scroll_speed
+        scroll_speed = SCROLL_STEP
+        max_y = max(self.document.height + 2 * VSTEP - HEIGHT, 0)
 
-        # Boundary check
-        self.scroll = max(0, min(self.scroll, len(self.display_list) * VSTEP - HEIGHT))
+        self.scroll -= delta * scroll_speed
+        self.scroll = max(0, min(self.scroll, max_y))
 
         self.draw()
