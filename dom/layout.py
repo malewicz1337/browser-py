@@ -127,6 +127,9 @@ class BlockLayout:
         self.display_list = []
 
     def layout(self):
+        if isinstance(self.node, Element) and self.node.tag == "head":
+            return
+
         self.x = self.parent.x
         self.width = self.parent.width
 
