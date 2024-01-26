@@ -260,6 +260,8 @@ class BlockLayout:
             self.flush()
             self.centering = True
             self.size += 10
+        elif tag == "pre":
+            self.in_pre_tag = True
 
     def close_tag(self, tag):
         if tag == "i":
@@ -277,6 +279,8 @@ class BlockLayout:
             self.flush()
             self.centering = False
             self.size -= 10
+        elif tag == "pre":
+            self.in_pre_tag = False
 
     def word(self, word):
         font = get_font(self.size, self.weight, self.style)
@@ -297,14 +301,6 @@ class BlockLayout:
 
         if self.cursor_x + word_width > self.width:
             self.flush()
-
-        # # *: Yes, I actually need this)))
-        # if self.line and self.cursor_x + word_width + space_width > self.width:
-        #     self.flush()
-
-        # if self.cursor_x + word_width + space_width > self.width:
-        #     self.cursor_y += font.metrics("linespace") * 1.25
-        #     self.cursor_x = HSTEP
 
         self.line.append((self.cursor_x, word, font))
         self.cursor_x += word_width + space_width
