@@ -1,3 +1,17 @@
+from dom.element import Element
+
+
+def style(node):
+    node.style = {}
+    if isinstance(node, Element) and "style" in node.attributes:
+        pairs = CSSParser(node.attributes["style"]).body()
+        for property, value in pairs.items():
+            node.style[property] = value  # type: ignore
+
+    for child in node.children:
+        style(child)
+
+
 class CSSParser:
     def __init__(self, s):
         self.s = s

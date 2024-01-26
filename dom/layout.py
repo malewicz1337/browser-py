@@ -1,6 +1,7 @@
 import tkinter.font
 from dom.text import Text
 from dom.element import Element
+from cssom.cssparser import CSSParser
 
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
@@ -134,7 +135,10 @@ class BlockLayout:
         self.width = self.parent.width
 
         if self.previous:
-            self.y = self.previous.y + self.previous.height
+            if self.previous.y is not None and self.previous.height is not None:
+                self.y = self.previous.y + self.previous.height
+            else:
+                self.y = self.parent.y
         else:
             self.y = self.parent.y
 
@@ -165,7 +169,9 @@ class BlockLayout:
         #     self.display_list.extend(child.display_list)
 
         if mode == "block":
-            self.height = sum([child.height for child in self.children])
+            self.height = sum(
+                child.height for child in self.children if child.height is not None
+            )
         else:
             self.height = self.cursor_y
 
@@ -306,14 +312,21 @@ class BlockLayout:
     def paint(self):
         cmds = []
 
-        if isinstance(self.node, Element) and self.node.tag == "pre":
-            x2, y2 = self.x + self.width, self.y + self.height  # type: ignore
-            rect = DrawRect(self.x, self.y, x2, y2, "gray")
-            cmds.append(rect)
+        # if isinstance(self.node, Element) and self.node.tag == "pre":
+        #     x2, y2 = self.x + self.width, self.y + self.height  # type: ignore
+        #     rect = DrawRect(self.x, self.y, x2, y2, "gray")
+        #     cmds.append(rect)
 
         if self.layout_mode() == "inline":
             for x, y, word, font in self.display_list:
                 text_cmd = DrawText(x, y, word, font)
                 cmds.append(text_cmd)
+
+        bgcolor = self.node.style.get("background-color", "transparent")
+
+        if bgcolor != "transparent":
+            x2, y2 = self.x + self.width, self.y + self.height  # type: ignore
+            rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
+            cmds.append(rect)
 
         return cmds

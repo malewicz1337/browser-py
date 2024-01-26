@@ -2,6 +2,7 @@ import tkinter
 
 from dom.layout import DocumentLayout
 from dom.htmlparser import HTMLParser
+from cssom.cssparser import style
 
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
@@ -37,9 +38,9 @@ class Browser:
         try:
             body = url.request()
             self.nodes = HTMLParser(body).parse()
+            style(self.nodes)
             self.document = DocumentLayout(self.nodes)
             self.document.layout()
-            # self.display_list = self.document.display_list
             self.display_list = []
             paint_tree(self.document, self.display_list)
             self.draw()
