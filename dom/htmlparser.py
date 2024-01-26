@@ -109,18 +109,6 @@ class HTMLParser:
             else:
                 text += c
 
-            # if c == "<":
-            #     in_tag = True
-            #     if text:
-            #         self.add_text(text)
-            #     text = ""
-            # elif c == ">":
-            #     in_tag = False
-            #     self.add_tag(text)
-            #     text = ""
-            # else:
-            #     text += c
-
         if not in_tag and text:
             self.add_text(text)
 

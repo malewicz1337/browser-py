@@ -4,6 +4,7 @@ class Element:
         self.children = []
         self.parent = parent
         self.attributes = attributes
+        self.style = {}
 
     def __repr__(self):
         return "<" + self.tag + ">"

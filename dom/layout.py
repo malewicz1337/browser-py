@@ -308,10 +308,11 @@ class BlockLayout:
     def paint(self):
         cmds = []
 
-        # if isinstance(self.node, Element) and self.node.tag == "pre":
-        #     x2, y2 = self.x + self.width, self.y + self.height  # type: ignore
-        #     rect = DrawRect(self.x, self.y, x2, y2, "gray")
-        #     cmds.append(rect)
+        if isinstance(self.node, Element) and self.node.tag == "pre":
+            x2, y2 = self.x + self.width, self.y + self.height  # type: ignore
+            rect = DrawRect(self.x, self.y, x2, y2, "gray")
+            print(rect)
+            cmds.append(rect)
 
         if self.layout_mode() == "inline":
             for x, y, word, font in self.display_list:
@@ -323,6 +324,7 @@ class BlockLayout:
         if bgcolor != "transparent":
             x2, y2 = self.x + self.width, self.y + self.height  # type: ignore
             rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
+            print(rect)
             cmds.append(rect)
 
         return cmds

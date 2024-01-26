@@ -2,11 +2,17 @@ from dom.element import Element
 
 
 def style(node):
-    node.style = {}
+    if not hasattr(node, "style"):
+        node.style = {}
+
     if isinstance(node, Element) and "style" in node.attributes:
-        pairs = CSSParser(node.attributes["style"]).body()
-        for property, value in pairs.items():
-            node.style[property] = value  # type: ignore
+        try:
+            pairs = CSSParser(node.attributes["style"]).body()
+            for property, value in pairs.items():
+                node.style[property] = value
+
+        except Exception as e:
+            print(f"Error parsing CSS for node: {e}")
 
     for child in node.children:
         style(child)
@@ -56,17 +62,26 @@ class CSSParser:
                 prop, val = self.pair()
                 pairs[prop.casefold()] = val
                 self.whitespace()
-                self.literal(";")
-                self.whitespace()
+
+                if self.i < len(self.s) and self.s[self.i] == ";":
+                    self.literal(";")
+                    self.whitespace()
+                elif self.i >= len(self.s):
+                    break
+
+                # self.literal(";")
+                # self.whitespace()
 
             # todo: handle errors more gracefully)
-            except Exception:
+            except Exception as e:
+                print(f"Error at CSSParser body method: {e}")
                 why = self.ignore_until([";"])
                 if why == ";":
                     self.literal(";")
                     self.whitespace()
                 else:
                     break
+
         return pairs
 
     def ignore_until(self, chars):
