@@ -260,8 +260,6 @@ class BlockLayout:
             self.flush()
             self.centering = True
             self.size += 10
-        elif tag == "pre":
-            self.in_pre_tag = True
 
     def close_tag(self, tag):
         if tag == "i":
@@ -279,8 +277,6 @@ class BlockLayout:
             self.flush()
             self.centering = False
             self.size -= 10
-        elif tag == "pre":
-            self.in_pre_tag = False
 
     def word(self, word):
         font = get_font(self.size, self.weight, self.style)

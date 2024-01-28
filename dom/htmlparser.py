@@ -45,6 +45,7 @@ class HTMLParser:
         in_script = False
         in_quote = False
         quote_char = None
+        self.in_pre = False
 
         for i in range(len(self.body)):
             c = self.body[i]
@@ -89,6 +90,15 @@ class HTMLParser:
                 continue
 
             if in_tag:
+                tag_start = i - len(text)
+                tag_end = self.body.find(">", tag_start) + 1
+                tag_content = self.body[tag_start:tag_end]
+
+                if "<pre" in tag_content.lower():
+                    self.in_pre = True
+                elif "</pre>" in tag_content.lower():
+                    self.in_pre = False
+
                 if c == ">" and not in_quote:
                     in_tag = False
                     self.add_tag(text)
@@ -138,6 +148,9 @@ class HTMLParser:
         return tag, attributes
 
     def add_text(self, text):
+        if not self.in_pre and text.isspace():
+            return
+
         if text.isspace():
             return
 
