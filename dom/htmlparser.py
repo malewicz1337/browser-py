@@ -151,8 +151,11 @@ class HTMLParser:
         if not self.in_pre and text.isspace():
             return
 
-        if text.isspace():
-            return
+        if self.in_pre:
+            text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        else:
+            if text.isspace():
+                return
 
         try:
             self.implicit_tags(None)
@@ -168,6 +171,12 @@ class HTMLParser:
 
     def add_tag(self, tag):
         tag, attributes = self.get_attributes(tag)
+
+        if "<pre" in tag or "<code" in tag:
+            self.in_pre = True
+        elif "</pre>" in tag or "</code>" in tag:
+            self.in_pre = False
+
         if tag.startswith("!"):
             return
 
