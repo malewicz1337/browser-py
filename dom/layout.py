@@ -156,6 +156,7 @@ class BlockLayout:
             self.style = "roman"
             self.size = 16
             self.centering = False
+            self.in_pre = False
 
             self.line = []
             self.recurse(self.node)
@@ -260,6 +261,9 @@ class BlockLayout:
             self.flush()
             self.centering = True
             self.size += 10
+        elif tag == "pre":
+            self.flush()
+            self.in_pre = True
 
     def close_tag(self, tag):
         if tag == "i":
@@ -277,6 +281,9 @@ class BlockLayout:
             self.flush()
             self.centering = False
             self.size -= 10
+        elif tag == "pre":
+            self.flush()
+            self.in_pre = False
 
     def word(self, word):
         font = get_font(self.size, self.weight, self.style)

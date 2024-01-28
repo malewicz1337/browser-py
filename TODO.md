@@ -18,3 +18,5 @@ the <div> element has three children: the <i>, <b>, and <p> elements. The first 
 [Test Implementation](./todos/anonymous-block-boxes.md)
 
 - **Run-ins:** A “run-in heading” is a heading that is drawn as part of the next paragraph’s text. Modify browser to render <h6> elements as run-in headings.
+
+- **Special tags:** Add proper handling for <pre> and <code> tags.
