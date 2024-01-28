@@ -152,7 +152,7 @@ class HTMLParser:
             return
 
         if self.in_pre:
-            text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            pass
         else:
             if text.isspace():
                 return
