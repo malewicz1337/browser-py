@@ -88,8 +88,6 @@ class HTMLParser:
                     in_comment = False
                     i += 2
                     continue
-
-            if in_comment:
                 continue
 
             if in_tag:
@@ -142,6 +140,8 @@ class HTMLParser:
         return tag, attributes
 
     def add_text(self, text):
+        text = text.replace("&lt;", "<").replace("&gt;", ">")
+
         if self.in_pre or self.in_code:
             self.append_text(text)
 
