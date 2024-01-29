@@ -90,15 +90,6 @@ class HTMLParser:
                 continue
 
             if in_tag:
-                tag_start = i - len(text)
-                tag_end = self.body.find(">", tag_start) + 1
-                tag_content = self.body[tag_start:tag_end]
-
-                if "<pre" in tag_content.lower():
-                    self.in_pre = True
-                elif "</pre>" in tag_content.lower():
-                    self.in_pre = False
-
                 if c == ">" and not in_quote:
                     in_tag = False
                     self.add_tag(text)

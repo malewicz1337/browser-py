@@ -49,10 +49,10 @@ BLOCK_ELEMENTS = [
 ]
 
 
-def get_font(size, weight, slant):
-    key = (size, weight, slant)
+def get_font(size, weight, slant, family="Times"):
+    key = (size, weight, slant, family)
     if key not in FONTS:
-        font = tkinter.font.Font(size=size, weight=weight, slant=slant)
+        font = tkinter.font.Font(family=family, size=size, weight=weight, slant=slant)
         label = tkinter.Label(font=font)
         FONTS[key] = (font, label)
     return FONTS[key][0]
@@ -200,6 +200,17 @@ class BlockLayout:
 
     def recurse(self, tree):
         if isinstance(tree, Text):
+            # if self.in_pre:
+            #     for char in tree.text:
+            #         if char == "\n":
+            #             self.flush()
+            #             self.cursor_y += VSTEP
+            #             self.cursor_x = 0
+            #         elif char.isspace():
+            #             self.word(" ")
+            #         else:
+            #             self.word(char)
+
             for word in tree.text.split():
                 self.word(word)
         else:
@@ -264,6 +275,9 @@ class BlockLayout:
         elif tag == "pre":
             self.flush()
             self.in_pre = True
+            self.font_family = "Courier"
+        elif tag == "code":
+            self.font_family = "Courier"
 
     def close_tag(self, tag):
         if tag == "i":
@@ -284,6 +298,9 @@ class BlockLayout:
         elif tag == "pre":
             self.flush()
             self.in_pre = False
+            self.font_family = "Times"
+        elif tag == "code":
+            self.font_family = "Times"
 
     def word(self, word):
         font = get_font(self.size, self.weight, self.style)
@@ -301,6 +318,15 @@ class BlockLayout:
 
             centered_x = (self.width - line_width) // 2
             self.cursor_x = max(HSTEP, centered_x)
+
+        # if self.in_pre:
+        #     if self.cursor_x + word_width > self.width:
+        #         self.flush()
+        #         self.cursor_y += VSTEP
+        #         self.cursor_x = 0
+
+        #     self.line.append((self.cursor_x, word, font))
+        #     self.cursor_x += word_width
 
         if self.cursor_x + word_width > self.width:
             self.flush()
