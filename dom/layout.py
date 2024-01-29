@@ -165,10 +165,6 @@ class BlockLayout:
         for child in self.children:
             child.layout()
 
-        # # !: ?????
-        # for child in self.children:
-        #     self.display_list.extend(child.display_list)
-
         if mode == "block":
             self.height = sum(
                 child.height for child in self.children if child.height is not None
@@ -340,7 +336,7 @@ class BlockLayout:
         if isinstance(self.node, Element) and self.node.tag == "pre":
             x2, y2 = self.x + self.width, self.y + self.height  # type: ignore
             rect = DrawRect(self.x, self.y, x2, y2, "gray")
-            print(rect)
+            print("pre")
             cmds.append(rect)
 
         if self.layout_mode() == "inline":

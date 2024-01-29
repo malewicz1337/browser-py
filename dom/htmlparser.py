@@ -163,9 +163,9 @@ class HTMLParser:
     def add_tag(self, tag):
         tag, attributes = self.get_attributes(tag)
 
-        if "<pre" in tag or "<code" in tag:
+        if tag == "pre":
             self.in_pre = True
-        elif "</pre>" in tag or "</code>" in tag:
+        elif tag == "/pre":
             self.in_pre = False
 
         if tag.startswith("!"):
