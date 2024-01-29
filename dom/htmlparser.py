@@ -38,6 +38,10 @@ class HTMLParser:
         self.body = body
         self.unfinished = []
 
+        self.tag_stack = []
+        self.in_pre = False
+        self.in_code = False
+
     def parse(self):
         text = ""
         in_tag = False
@@ -45,7 +49,6 @@ class HTMLParser:
         in_script = False
         in_quote = False
         quote_char = None
-        self.in_pre = False
 
         for i in range(len(self.body)):
             c = self.body[i]
@@ -139,15 +142,15 @@ class HTMLParser:
         return tag, attributes
 
     def add_text(self, text):
-        if not self.in_pre and text.isspace():
-            return
+        if self.in_pre or self.in_code:
+            self.append_text(text)
 
-        if self.in_pre:
-            pass
         else:
             if text.isspace():
                 return
+            self.append_text(text)
 
+    def append_text(self, text):
         try:
             self.implicit_tags(None)
             if self.unfinished:
@@ -155,21 +158,24 @@ class HTMLParser:
                 node = Text(text, parent)
                 parent.children.append(node)
             else:
-                print("No unfinished in add text")
-                pass
+                print("No unfinished tags to add text to.")
         except Exception as e:
-            print("Error at HTMLParser get text method ", e)
+            print("Error in HTMLParser append_text method: ", e)
 
     def add_tag(self, tag):
         tag, attributes = self.get_attributes(tag)
 
-        if tag == "pre":
-            self.in_pre = True
-        elif tag == "/pre":
-            self.in_pre = False
-
         if tag.startswith("!"):
             return
+
+        if not tag.startswith("/"):
+            self.tag_stack.append(tag)
+        else:
+            if self.tag_stack and self.tag_stack[-1] == tag[1:]:
+                self.tag_stack.pop()
+
+        self.in_pre = "pre" in self.tag_stack
+        self.in_code = "code" in self.tag_stack
 
         self.implicit_tags(tag)
 

@@ -154,9 +154,11 @@ class BlockLayout:
             self.cursor_y = 0
             self.weight = "normal"
             self.style = "roman"
+            self.font_family = "Times"
             self.size = 16
             self.centering = False
             self.in_pre = False
+            self.in_code = False
 
             self.line = []
             self.recurse(self.node)
@@ -196,19 +198,18 @@ class BlockLayout:
 
     def recurse(self, tree):
         if isinstance(tree, Text):
-            # if self.in_pre:
-            #     for char in tree.text:
-            #         if char == "\n":
-            #             self.flush()
-            #             self.cursor_y += VSTEP
-            #             self.cursor_x = 0
-            #         elif char.isspace():
-            #             self.word(" ")
-            #         else:
-            #             self.word(char)
+            if self.in_pre:
+                for char in tree.text:
+                    if char == "\n":
+                        self.flush()
+                        self.cursor_y += VSTEP
+                        self.cursor_x = 0
+                    else:
+                        self.word(char)
 
-            for word in tree.text.split():
-                self.word(word)
+            else:
+                for word in tree.text.split():
+                    self.word(word)
         else:
             self.open_tag(tree.tag)
             for child in tree.children:
@@ -273,6 +274,7 @@ class BlockLayout:
             self.in_pre = True
             self.font_family = "Courier"
         elif tag == "code":
+            self.in_code = True
             self.font_family = "Courier"
 
     def close_tag(self, tag):
@@ -296,6 +298,7 @@ class BlockLayout:
             self.in_pre = False
             self.font_family = "Times"
         elif tag == "code":
+            self.in_code = False
             self.font_family = "Times"
 
     def word(self, word):
@@ -303,32 +306,31 @@ class BlockLayout:
         word_width = font.measure(word)
         space_width = font.measure(" ")
 
-        if self.centering:
-            line_width = (
-                sum(font.measure(word) for _x, word, font in self.line)
-                + len(self.line) * space_width
-            )
-            if self.line:
-                line_width += space_width
-            line_width += word_width
+        if self.in_pre or self.in_code:
+            for char in word:
+                char_width = font.measure(char)
+                if self.cursor_x + char_width > self.width:
+                    self.flush()
+                self.line.append((self.cursor_x, char, font))
+                self.cursor_x += char_width
+        else:
+            if self.centering:
+                line_width = (
+                    sum(font.measure(word) for _x, word, font in self.line)
+                    + len(self.line) * space_width
+                )
+                if self.line:
+                    line_width += space_width
+                line_width += word_width
 
-            centered_x = (self.width - line_width) // 2
-            self.cursor_x = max(HSTEP, centered_x)
+                centered_x = (self.width - line_width) // 2
+                self.cursor_x = max(HSTEP, centered_x)
 
-        # if self.in_pre:
-        #     if self.cursor_x + word_width > self.width:
-        #         self.flush()
-        #         self.cursor_y += VSTEP
-        #         self.cursor_x = 0
+            if self.cursor_x + word_width > self.width:
+                self.flush()
 
-        #     self.line.append((self.cursor_x, word, font))
-        #     self.cursor_x += word_width
-
-        if self.cursor_x + word_width > self.width:
-            self.flush()
-
-        self.line.append((self.cursor_x, word, font))
-        self.cursor_x += word_width + space_width
+            self.line.append((self.cursor_x, word, font))
+            self.cursor_x += word_width + space_width
 
     def paint(self):
         cmds = []
