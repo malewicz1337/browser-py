@@ -1,52 +1,12 @@
 import tkinter.font
 from dom.text import Text
 from dom.element import Element
-from cssom.cssparser import CSSParser
+from dom.constants import BLOCK_ELEMENTS
 
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
 cursor_x, cursor_y = HSTEP, VSTEP
 FONTS = {}
-
-BLOCK_ELEMENTS = [
-    "html",
-    "body",
-    "article",
-    "section",
-    "nav",
-    "aside",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "hgroup",
-    "header",
-    "footer",
-    "address",
-    "p",
-    "hr",
-    "pre",
-    "blockquote",
-    "ol",
-    "ul",
-    "menu",
-    "li",
-    "dl",
-    "dt",
-    "dd",
-    "figure",
-    "figcaption",
-    "main",
-    "div",
-    "table",
-    "form",
-    "fieldset",
-    "legend",
-    "details",
-    "summary",
-]
 
 
 def get_font(size, weight, slant, family="Times"):

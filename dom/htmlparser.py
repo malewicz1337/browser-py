@@ -1,36 +1,12 @@
 from dom.text import Text
 from dom.element import Element
+from dom.constants import HTML_ENTITIES, HEAD_TAGS, SELF_CLOSING_TAGS, FORMATTING_TAGS
 
-HEAD_TAGS = [
-    "base",
-    "basefont",
-    "bgsound",
-    "noscript",
-    "link",
-    "meta",
-    "title",
-    "style",
-    "script",
-]
 
-SELF_CLOSING_TAGS = [
-    "area",
-    "base",
-    "br",
-    "col",
-    "embed",
-    "hr",
-    "img",
-    "input",
-    "link",
-    "meta",
-    "param",
-    "source",
-    "track",
-    "wbr",
-]
-
-FORMATTING_TAGS = ["b", "i", "em", "strong", "u"]
+def decode_html_entities(text):
+    for entity, char in HTML_ENTITIES.items():
+        text = text.replace(entity, char)
+    return text
 
 
 class HTMLParser:
@@ -140,7 +116,8 @@ class HTMLParser:
         return tag, attributes
 
     def add_text(self, text):
-        text = text.replace("&lt;", "<").replace("&gt;", ">")
+        # text = text.replace("&lt;", "<").replace("&gt;", ">")
+        text = decode_html_entities(text)
 
         if self.in_pre or self.in_code:
             self.append_text(text)
