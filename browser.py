@@ -1,8 +1,10 @@
 import tkinter
+from dom.element import Element
 
 from dom.layout import DocumentLayout
 from dom.htmlparser import HTMLParser
 from cssom.cssparser import style
+from dom.text import Text
 
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
@@ -38,6 +40,7 @@ class Browser:
         try:
             body = url.request()
             self.nodes = HTMLParser(body).parse()
+            self.save_html()
             style(self.nodes)
             self.document = DocumentLayout(self.nodes)
             self.document.layout()
@@ -50,6 +53,36 @@ class Browser:
             print("Error at load method on Browser: ", e)
             self.load("about:blank")
             return False
+
+    def serialize_node(self, node):
+        if isinstance(node, Text):
+            return node.text
+        elif isinstance(node, Element):
+            html = f"<{node.tag}"
+
+            if node.attributes:
+                for attr, value in node.attributes.items():
+                    html += f' {attr}="{value}"'
+
+            html += ">"
+
+            for child in node.children:
+                html += self.serialize_node(child)  # type: ignore
+
+            html += f"</{node.tag}>"
+
+            return html
+
+    def save_html(self):
+        if not self.nodes:
+            return False
+
+        html_content = self.serialize_node(self.nodes)
+
+        with open("./output.html", "w", encoding="utf-8") as file:
+            file.write(html_content)  # type: ignore
+
+        return True
 
     def draw(self):
         self.canvas.delete("all")

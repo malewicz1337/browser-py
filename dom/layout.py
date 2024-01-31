@@ -130,7 +130,7 @@ class BlockLayout:
         if mode == "block":
             self.height = sum(
                 child.height for child in self.children if child.height is not None
-            )
+            )  # type: ignore
         else:
             self.height = self.cursor_y
 
@@ -293,18 +293,20 @@ class BlockLayout:
     def paint(self):
         cmds = []
 
-        if isinstance(self.node, Element) and self.node.tag == "pre":
-            print("pre")
-            x2, y2 = self.x + self.width, self.y + self.height  # type: ignore
-            rect = DrawRect(self.x, self.y, x2, y2, "gray")
-            cmds.append(rect)
+        # if isinstance(self.node, Element) and self.node.tag == "pre":
+        #     print("pre")
+        #     x2, y2 = self.x + self.width, self.y + self.height  # type: ignore
+        #     rect = DrawRect(self.x, self.y, x2, y2, "gray")
+        #     cmds.append(rect)
 
         if self.layout_mode() == "inline":
             for x, y, word, font in self.display_list:
                 text_cmd = DrawText(x, y, word, font)
                 cmds.append(text_cmd)
 
-        bgcolor = self.node.style.get("background-color", "transparent")
+        bgcolor = "transparent"
+        if hasattr(self.node, "style") and "background-color" in self.node.style:
+            bgcolor = self.node.style["background-color"]
 
         if bgcolor != "transparent":
             x2, y2 = self.x + self.width, self.y + self.height  # type: ignore
@@ -312,3 +314,8 @@ class BlockLayout:
             cmds.append(rect)
 
         return cmds
+
+    def __repr__(self):
+        return "BlockLayout[{}](x={}, y={}, width={}, height={})".format(
+            self.layout_mode(), self.x, self.y, self.width, self.height
+        )
