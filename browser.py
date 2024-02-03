@@ -40,7 +40,7 @@ class Browser:
         try:
             body = url.request()
             self.nodes = HTMLParser(body).parse()
-            self.save_html()
+            # self.save_html()
             style(self.nodes)
             self.document = DocumentLayout(self.nodes)
             self.document.layout()

@@ -2,8 +2,6 @@ from dom.element import Element
 
 
 def style(node):
-    if not hasattr(node, "style"):
-        node.style = {}
 
     if isinstance(node, Element) and "style" in node.attributes:
         try:
@@ -62,19 +60,12 @@ class CSSParser:
                 prop, val = self.pair()
                 pairs[prop.casefold()] = val
                 self.whitespace()
-
-                if self.i < len(self.s) and self.s[self.i] == ";":
-                    self.literal(";")
-                    self.whitespace()
-                elif self.i >= len(self.s):
-                    break
-
-                # self.literal(";")
-                # self.whitespace()
+                self.literal(";")
+                self.whitespace()
 
             # todo: handle errors more gracefully)
             except Exception as e:
-                print(f"Error at CSSParser body method: {e}")
+                # print(f"Error at CSSParser body method: {e}")
                 why = self.ignore_until([";"])
                 if why == ";":
                     self.literal(";")

@@ -15,6 +15,7 @@ def get_font(size, weight, slant, family="Times"):
         font = tkinter.font.Font(family=family, size=size, weight=weight, slant=slant)
         label = tkinter.Label(font=font)
         FONTS[key] = (font, label)
+
     return FONTS[key][0]
 
 
@@ -87,6 +88,16 @@ class BlockLayout:
         self.children = []
         self.display_list = []
 
+        self.cursor_x = 0
+        self.cursor_y = 0
+        self.weight = "normal"
+        self.style = "roman"
+        self.font_family = "Times"
+        self.size = 16
+        self.centering = False
+        self.in_pre = False
+        self.in_code = False
+
     def layout(self):
         if isinstance(self.node, Element) and self.node.tag == "head":
             return
@@ -110,16 +121,6 @@ class BlockLayout:
                 self.children.append(next)
                 previous = next
         else:
-            self.cursor_x = 0
-            self.cursor_y = 0
-            self.weight = "normal"
-            self.style = "roman"
-            self.font_family = "Times"
-            self.size = 16
-            self.centering = False
-            self.in_pre = False
-            self.in_code = False
-
             self.line = []
             self.recurse(self.node)
             self.flush()
@@ -158,7 +159,7 @@ class BlockLayout:
 
     def recurse(self, tree):
         if isinstance(tree, Text):
-            if self.in_pre:
+            if self.in_pre or self.in_code:
                 for char in tree.text:
                     if char == "\n":
                         self.flush()
@@ -178,24 +179,22 @@ class BlockLayout:
         if not self.line:
             return
 
-        font = get_font(self.size, self.weight, self.style)
-
+        font = get_font(self.size, self.weight, self.style, self.font_family)
         metrics = [font.metrics() for x, word, font in self.line]
         max_ascent = max([metric["ascent"] for metric in metrics])
-
         baseline = self.cursor_y + 1.25 * max_ascent
+        line_width = sum(font.measure(word) for x, word, font in self.line) + (
+            len(self.line) - 1
+        ) * font.measure(" ")
 
         if self.centering:
-            line_width = sum(font.measure(word) for _x, word, font in self.line)
-            line_width += (len(self.line) - 1) * font.measure(" ")
-
-            centered_x = (WIDTH - line_width) // 2
-            temp_cursor_x = max(HSTEP, centered_x)
+            centered_x = (self.width - line_width) // 2
+            x_offset = max(HSTEP, centered_x)
 
             for x, word, font in self.line:
                 y = self.y + baseline - font.metrics("ascent")
-                self.display_list.append((temp_cursor_x, y, word, font))
-                temp_cursor_x += font.measure(word) + font.measure(" ")
+                self.display_list.append((x_offset, y, word, font))
+                x_offset += font.measure(word) + font.measure(" ")
 
         else:
             for rel_x, word, font in self.line:
@@ -205,7 +204,6 @@ class BlockLayout:
 
         self.cursor_x = 0
         self.line = []
-
         max_descent = max([metric["descent"] for metric in metrics])
         self.cursor_y = baseline + 1.25 * max_descent
 
@@ -248,8 +246,8 @@ class BlockLayout:
             self.flush()
             self.cursor_y += VSTEP
         elif tag == "h1":
-            self.flush()
             self.centering = False
+            self.flush()
             self.size -= 10
         elif tag == "pre":
             self.flush()
@@ -260,32 +258,30 @@ class BlockLayout:
             self.font_family = "Times"
 
     def word(self, word):
-        font = get_font(self.size, self.weight, self.style)
+        font = get_font(self.size, self.weight, self.style, self.font_family)
         word_width = font.measure(word)
         space_width = font.measure(" ")
+        line_width = (
+            sum(font.measure(word) for _x, word, font in self.line)
+            + len(self.line) * space_width
+        )
 
         if self.in_pre or self.in_code:
-            for char in word:
-                char_width = font.measure(char)
-                if self.cursor_x + char_width > self.width:
-                    self.flush()
-                self.line.append((self.cursor_x, char, font))
-                self.cursor_x += char_width
-        else:
-            if self.centering:
-                line_width = (
-                    sum(font.measure(word) for _x, word, font in self.line)
-                    + len(self.line) * space_width
-                )
-                if self.line:
-                    line_width += space_width
-                line_width += word_width
+            char = word
+            char_width = font.measure(char)
 
-                centered_x = (self.width - line_width) // 2
-                self.cursor_x = max(HSTEP, centered_x)
-
-            if self.cursor_x + word_width > self.width:
+            if self.line and line_width + char_width > self.width:
                 self.flush()
+
+            self.line.append((self.cursor_x, char, font))
+            self.cursor_x += char_width
+        else:
+
+            if self.line and line_width + word_width > self.width:
+                self.flush()
+
+            # if self.cursor_x + word_width > self.width:
+            #     self.flush()
 
             self.line.append((self.cursor_x, word, font))
             self.cursor_x += word_width + space_width

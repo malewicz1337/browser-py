@@ -81,15 +81,13 @@ class HTMLParser:
 
             if c == "<":
                 in_tag = True
-                # if text:
-                #     self.add_text(text)
-                if text.strip():
+                if text:
                     self.add_text(text)
                 text = ""
             else:
                 text += c
 
-        if not in_tag and text.strip():
+        if not in_tag and text:
             self.add_text(text)
 
         return self.finish()
@@ -115,22 +113,22 @@ class HTMLParser:
             else:
                 attributes[attrpair.casefold()] = ""
 
-        with open("./attr.txt", "w", encoding="utf-8") as file:
-            file.writelines(tag)
-            file.writelines(attributes)
+        # with open("./attr.txt", "a", encoding="utf-8") as file:
+        #     file.write(tag + "\n")
+        #     file.write(str(attributes) + "\n")
 
         return tag, attributes
 
     def add_text(self, text):
-        # text = text.replace("&lt;", "<").replace("&gt;", ">")
-        text = decode_html_entities(text)
-
         if self.in_pre or self.in_code:
             self.append_text(text)
 
         else:
+            text = decode_html_entities(text)
+
             if text.isspace():
                 return
+
             self.append_text(text)
 
     def append_text(self, text):
