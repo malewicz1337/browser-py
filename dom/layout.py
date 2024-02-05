@@ -280,9 +280,6 @@ class BlockLayout:
             if self.line and line_width + word_width > self.width:
                 self.flush()
 
-            # if self.cursor_x + word_width > self.width:
-            #     self.flush()
-
             self.line.append((self.cursor_x, word, font))
             self.cursor_x += word_width + space_width
 

@@ -3,12 +3,6 @@ from dom.element import Element
 from dom.constants import HTML_ENTITIES, HEAD_TAGS, SELF_CLOSING_TAGS, FORMATTING_TAGS
 
 
-def decode_html_entities(text):
-    for entity, char in HTML_ENTITIES.items():
-        text = text.replace(entity, char)
-    return text
-
-
 class HTMLParser:
     def __init__(self, body):
         self.body = body
@@ -124,12 +118,18 @@ class HTMLParser:
             self.append_text(text)
 
         else:
-            text = decode_html_entities(text)
+            text = self.decode_html_entities(text)
 
             if text.isspace():
                 return
 
             self.append_text(text)
+
+    @staticmethod
+    def decode_html_entities(text):
+        for entity, char in HTML_ENTITIES.items():
+            text = text.replace(entity, char)
+        return text
 
     def append_text(self, text):
         try:
@@ -192,15 +192,15 @@ class HTMLParser:
     def close_tag(self, tag):
         if len(self.unfinished) == 1:
             return
-        if self.unfinished:
-            expected_tag = tag[1:]
-            if expected_tag in FORMATTING_TAGS:
-                self.handle_misnested_tags(expected_tag)
-            else:
-                node = self.unfinished.pop()
-                if self.unfinished:
-                    parent = self.unfinished[-1]
-                    parent.children.append(node)
+        
+        expected_tag = tag[1:]
+        if expected_tag in FORMATTING_TAGS:
+            self.handle_misnested_tags(expected_tag)
+        else:
+            node = self.unfinished.pop()
+            if self.unfinished:
+                parent = self.unfinished[-1]
+                parent.children.append(node)
 
     def handle_misnested_tags(self, expected_tag):
         if self.unfinished:
