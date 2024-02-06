@@ -226,7 +226,6 @@ class BlockLayout:
             self.centering = True
             self.size += 10
         elif tag == "pre":
-            self.flush()
             self.in_pre = True
             self.font_family = "Courier"
         elif tag == "code":
@@ -250,7 +249,6 @@ class BlockLayout:
             self.flush()
             self.size -= 10
         elif tag == "pre":
-            self.flush()
             self.in_pre = False
             self.font_family = "Times"
         elif tag == "code":

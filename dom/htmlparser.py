@@ -163,7 +163,7 @@ class HTMLParser:
         if tag in ["p", "li"]:
             self.close_open_tags(tag)
 
-        if tag.startswith("/"):
+        elif tag.startswith("/"):
             self.close_tag(tag)
 
         elif tag in SELF_CLOSING_TAGS:
@@ -172,7 +172,6 @@ class HTMLParser:
                 node = Element(tag, attributes, parent)
                 parent.children.append(node)
             else:
-                print("No unfinished in add tag 2")
                 pass
 
         else:
@@ -184,18 +183,21 @@ class HTMLParser:
             self.unfinished.append(node)
 
     def close_open_tags(self, new_tag):
-        while self.unfinished and self.unfinished[-1].tag in ["p", "li"]:
-            if self.unfinished[-1].tag != new_tag or new_tag == "li":
+        last_tag = self.unfinished[-1].tag
+        while self.unfinished and last_tag in ["p", "li"]:
+            if last_tag != new_tag or new_tag == "li":
                 break
-            self.close_tag(self.unfinished[-1].tag)
+            self.close_tag(last_tag)
 
     def close_tag(self, tag):
         if len(self.unfinished) == 1:
             return
-        
+
         expected_tag = tag[1:]
-        if expected_tag in FORMATTING_TAGS:
+
+        if not self.unfinished or self.unfinished[-1].tag != expected_tag:
             self.handle_misnested_tags(expected_tag)
+
         else:
             node = self.unfinished.pop()
             if self.unfinished:
@@ -203,25 +205,17 @@ class HTMLParser:
                 parent.children.append(node)
 
     def handle_misnested_tags(self, expected_tag):
-        if self.unfinished:
-            index = None
-            for i in range(len(self.unfinished) - 1, -1, -1):
-                if self.unfinished[i].tag == expected_tag:
-                    index = i
-                    break
+        if not self.unfinished:
+            return
 
-            if index is not None:
-                misnested_tags = []
-                while len(self.unfinished) > index:
+        for i in range(len(self.unfinished) - 1, -1, -1):
+            if self.unfinished[i].tag == expected_tag:
+                while len(self.unfinished) > i + 1:
                     node = self.unfinished.pop()
-                    if node.tag in FORMATTING_TAGS:
-                        misnested_tags.append(node.tag)
                     if self.unfinished:
                         parent = self.unfinished[-1]
                         parent.children.append(node)
-
-                for tag in reversed(misnested_tags):
-                    self.add_tag(tag)
+                return
 
     def implicit_tags(self, tag):
         try:
